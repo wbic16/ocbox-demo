@@ -103,3 +103,128 @@ claim (see §D). Everything below is about what happens off it.
 locally. All probe state lived under /tmp/audit and was removed; the
 `sq host` processes belonging to probe stores were killed (pre-existing
 ones from the repo's own runs remain — see P11a).*
+
+
+---
+
+# Addendum — Fix pass (2026-11-01)
+
+Directed by Will: "fix the bugs and consider using sq in daemon mode."
+Implemented the same day; SPEC-v0.2.md unchanged (divergences are
+recorded as SPEC-DEVIATIONS in README.md, as v0.3 candidates).
+Regression coverage: `tests/fix_regressions.sh` (35 asserts). Final
+suite results against the fixed binary: demo **PASS**, stress
+**28/28**, showcase **14/14**, teleport **10/10**, fix regressions
+**35/35**.
+
+## Transport decision: SQ daemon mode (daemon-only, no host fallback)
+
+The writer now drives SQ exclusively through its daemon:
+`sq share <phext>` in the store directory, scroll bytes via `pull`/
+`push` (byte-exact), small appends via `insert` argv, plus `toc`,
+`save`, `shutdown`. The HTTP host code path was removed, not kept.
+
+Measured per-op latency (median of ~20 runs, existing 250-scroll /
+5.17 MB stress phext, SQ 0.6.0 local):
+
+| op | HTTP host | daemon CLI |
+|---|---|---|
+| update small scroll | 2.97 ms | 1.69 ms |
+| update/insert 64 KB | 2.66 ms | push 1.77 ms |
+| insert small | 3.19 ms | 2.56 ms (argv) |
+| select 64 KB scroll | 0.6 ms | 1.65 ms (pull to file 2.24 ms) |
+| toc (250 scrolls) | 8.37 ms | 12.84 ms |
+| whole-phext checksum | 1.1 ms | **no such op** (per-scroll only) |
+| delta | 9.3 ms | **no no-arg form** (prints usage) |
+
+Deciding factors, in order:
+
+1. **Trust surface.** The daemon is filesystem-local IPC scoped to the
+   store directory: no TCP listener at all, no 0.0.0.0 keyless port, no
+   port/pid file to adopt blindly. P6 and P11a die by construction.
+   `OCBOX_SQ_KEY` becomes irrelevant locally (documented in README).
+2. **Lifecycle.** `stop` ends with `sq shutdown`; the daemon is also
+   shut down by `destroy --force`. Nothing is left listening or running
+   after a session closes.
+3. **Cost parity.** Per-op latency is the same order as HTTP (the old
+   writer already made one HTTP request per op). Daemon facts that
+   shaped the implementation: mutations live in daemon memory until
+   `sq save` (cheap — 4 ms on the 5 MB phext — so the writer saves once
+   per command, after its writes); `sq select` to stdout appends a
+   trailing newline, so payloads move via `pull`/`push` files only;
+   daemon `checksum` is per-scroll and `delta` differs across SQ
+   versions (0.5.6 vs 0.6.0 semantics diverge), so whole-phext identity
+   is the SHA-256 of the phext file after save — computed by the writer,
+   not delegated to SQ.
+4. **Compatibility.** The needed CLI ops (share/status/insert/select/
+   push/pull/toc/save/shutdown, per-scroll checksum) were verified live
+   against SQ **0.5.6** on rock-mountain (a ranch node), not just 0.6.0
+   locally. argv limits checked: a 64 KB chunk (~87 KB base64) passes
+   as a single argument; larger appends go pull+concat+push.
+5. **Not claimed:** SQ's whole-file rewrite per mutation is
+   transport-independent and unchanged. One daemon serves one phext;
+   in a shared multi-project store dir the writer takes the single
+   daemon slot over (the displaced project's next command restarts its
+   own daemon; phext files are never touched by the takeover).
+
+**Daemon robustness findings (new, from this pass).** SQ's daemon IPC
+wedges intermittently: a live `sq share` process whose clients block
+forever. The wedge correlates with clients killed by short timeouts
+while the daemon is loading or busy — including, in early iterations of
+this pass, our own `sq status` probes. The writer therefore: decides
+daemon existence from `/proc` (cmdline + cwd, never from a probe),
+proves liveness with ONE long-fused warm-up op (`toc`, 60 s) instead of
+probe loops, settles (zero store daemons, no `.sq` dir) before
+spawning, and recovers a wedged daemon scoped to its own store
+(SIGKILL verified store processes only, clear `.sq`, respawn — one
+retry, then a loud death). `shutdown()` escalates CLI → SIGTERM →
+SIGKILL so `stop` really stops it. Under this discipline the full
+suite set passes end-to-end; under heavy concurrent machine load a
+single regression-suite assert has occasionally flaked and passed on
+rerun (noted honestly; the demo/stress/showcase/teleport verifiers use
+the same settle discipline).
+
+## Resolutions
+
+| # | Status | Fix + evidence |
+|---|--------|----------------|
+| P9b symlink escape | **RESOLVED** | `create_workspace` walks with `followlinks=False`; dir symlinks never descended; file symlinks materialized only when the resolved target is a file inside the project and not excluded; skips recorded in meta + manifest as `symlink-skipped`. Regressions 1a/1b/1d/1e/1f. |
+| P9a symlink loop crash | **RESOLVED** | Same walk (loops are never followed); copy failure removes the partial workspace and dies cleanly. Regression 1c. |
+| P1 concurrent exec | **RESOLVED** | `State` holds an exclusive `fcntl.flock` on `state.lock` for the process lifetime (concurrent invocations serialize, both records land); state writes are unique-tmp + `os.replace`. Proof: regressions 2a–2d — 2×10 parallel execs → 20 transcripts, `last_seq` 21, seqs contiguous, zero errors. (Do not call `ocbox` from inside an exec'd command: it would wait on the lock its parent holds.) |
+| P2 checkpoint-less teleport lie | **RESOLVED** | Sessions without checkpoints rebuild as `interrupted`; `last_seq` = max seq present in the lanes; briefing prints `INTERRUPTED … (no checkpoint)` and the next free sequence. Regressions 3a–3d. |
+| P3a no integrity verification | **RESOLVED** | teleport-in validates on a scratch copy BEFORE installing: registry parses, per-session checkpoint consistency (`final_seq` vs lanes, manifest presence), every recorded stream re-hashed against its transcript. Briefing prints `phext_sha256:` and an `integrity: OK / DEGRADED (details)` verdict; `--expect-sha256` refuses on mismatch. Regressions 4a–4d. **Detectability boundary, stated plainly:** the audited 40% tail-truncation class is caught (DEGRADED/refusal). A truncation confined to the tail of the *final* scroll, where that scroll carries no hash of its own (e.g. the lane-map scroll), is not detectable from the file alone — `--expect-sha256` (out-of-band hash) is the airtight check. |
+| P4 foreign project adoption | **RESOLVED** | Registry name ≠ local name → refuse with both names; `--adopt` is the explicit escape hatch, announced in the briefing. Regressions 5a–5d. |
+| P6 host identity unvalidated | **RESOLVED (by transport)** | No host, no port, no `sq-host.json`. Daemon adoption is verified via /proc (cmdline + cwd match this store) plus the warm-up op. |
+| P10 context economy | **RESOLVED** | §4 implemented with local machinery (see below). Regressions 6a–6c. |
+| P11a keyless 0.0.0.0 host, never shut down | **RESOLVED (by transport)** | No listener exists. `stop`/`destroy` shut the store daemon down; startup is on demand. |
+| P8 stop lies about missing workspace | **RESOLVED** | Capture proceeds (the record's job is to say what happened): diff + checkpoint record `workspace: missing at stop`; CLI prints `record closed (workspace missing)`. Regressions 9a/9b. |
+| P12 orphaned wrapped commands | **PARTIAL** | Wrapped command runs in its own process group; SIGINT/SIGTERM to the CLI are forwarded to the group before exit; timeouts kill the group and are recorded. `kill -9` of the CLI itself cannot be handled by anyone — documented in README. (The fix sketch's "running marker scroll" was not adopted: the transcript-last write order already makes an in-flight exec recognizably incomplete.) |
+| P5 stdin inheritance, no timeout | **RESOLVED** | stdin defaults to DEVNULL; `--interactive` inherits; `--timeout N` / `OCBOX_EXEC_TIMEOUT` kills the process group (TERM, 2 s grace, KILL) and records `timed_out` in the transcript. Regression 8a. |
+| P7 phantom session on SQ-missing start | **RESOLVED** | The writer (transport preflight) is constructed before any state is saved or workspace copied. Verified: `SQ_BIN=/nonexistent ocbox start` → specific error, no `state.json` created. |
+| P13 phext-name collisions | **RESOLVED** | `init` refuses when a different raw name sanitizes to the same phext file for the same store; `start` refuses when the store registry holds a colliding name. |
+| R1 key ignored on host reuse | **RESOLVED (by transport)** | No host to reuse. `OCBOX_SQ_KEY` is a documented no-op locally. |
+| R2 destroy discards active session | **RESOLVED** | Refuses on active sessions; `--force` writes a tombstone line into the meta lane first. Regressions 7a–7c. |
+| R3 blind write retries | **RESOLVED** | The daemon writer makes exactly one attempt per op and checks the exit code; there are no retries to duplicate an append. |
+| R4 no redaction hook | **RESOLVED** | `OCBOX_REDACT` (comma-separated regexes) applied to the recorded command line and both streams before hashing/insert; redaction count recorded in the transcript. Documented best-effort in README. Regressions 10a–10d. |
+| R5 identity = absolute path | **OPEN** | State is still keyed by absolute path; teleport-in remains the recovery for a moved project. Changing identity semantics is a data-model decision beyond this fix list; recorded here so it is a decision, not an oversight. |
+| R6 non-atomic exec flush | **RESOLVED** | Streams are written first, the transcript LAST (it is the commit record), meta index line after; `last_seq` and state advance only after the phext writes land, and the writer saves once at the end. |
+| §B checkpoint contents | **RESOLVED** | Checkpoint now carries per-class `max_seq_*` counters, `lane_map_coord`/`lane_map_sha256`/`lane_map_scrolls`, `prev_checkpoint_sha256` (the E4 chain), and `delta_sha256` = the lane-map hash. The lane-map scroll itself (checkpoint class, chunk 2) is a SPEC-DEVIATION / v0.3 candidate (README). |
+| §B §4 resume design (delta + query) | **RESOLVED, different mechanism** | SQ's daemon `delta` is version-divergent and `checksum` is per-scroll, so the map lives in the phext instead: the checkpoint's lane-hash map (coordinate→SHA-256, written at stop). `context` compares it, plus a store-local `delta-state.json`, against current scroll hashes. SQ `query` remains unused — with the map in the phext, ranged pulls are unnecessary. |
+
+## Context economy — before/after (P10, measured)
+
+Same stress phext (5,198,797 B, 251 scrolls), transport ops counted
+exactly via a logging `SQ_BIN` wrapper:
+
+| | audit (HTTP era) | fix pass (daemon) |
+|---|---|---|
+| no-change resume output | 352,836 B | **1,001 B** |
+| no-change resume transport ops | 252–503 requests | **4 ops** (warm-up toc, save, toc, 1 pull) |
+| baseline-establishing context | (same full cost) | 6,302 B out / 259 ops (one full hash pass) |
+
+The no-change path is: file SHA-256 unchanged → print summary +
+checkpoint. The change path diffs per-scroll hashes (baseline from
+`delta-state.json`, or from checkpoint lane maps on a teleported phext)
+and prints only the changed coordinates. `--lane <class>` /
+`--session <int>` scope the toc; `--full` is the explicit opt-in to the
+old everything-listing.

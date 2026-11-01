@@ -22,12 +22,23 @@ B="$STATE/B"
 TRANSCRIPT="$DEMO_DIR/TELEPORT-TRANSCRIPT.txt"
 OCBOX="$ROOT_DIR/ocbox"
 
-kill_host() {  # $1 = store dir
-  local f="$1/sq-host.json"
-  if [ -f "$f" ]; then
-    local pid
-    pid="$(python3 -c "import json; print(json.load(open('$f'))['pid'])" 2>/dev/null || true)"
-    if [ -n "${pid:-}" ]; then kill "$pid" 2>/dev/null || true; fi
+stop_daemon() {  # $1 = store dir (default $STORE)
+  local d="${1:-$STORE}"
+  if [ -d "$d" ]; then
+    (cd "$d" && timeout 10 "$HOME/.cargo/bin/sq" shutdown >/dev/null 2>&1) || true
+    # reap any verified leftover `sq share` whose cwd is this store
+    python3 - "$d" <<'PYEOF' || true
+import os, signal, sys
+from pathlib import Path
+store = sys.argv[1]
+for e in Path("/proc").glob("[0-9]*"):
+    try:
+        cmd = (e / "cmdline").read_bytes().decode("utf-8", "replace")
+        if "share" in cmd and ".phext" in cmd and os.readlink(e / "cwd") == store:
+            os.kill(int(e.name), signal.SIGTERM)
+    except OSError:
+        continue
+PYEOF
   fi
 }
 
@@ -41,8 +52,8 @@ run() {
 
 main() {
   echo "=== ocbox x phext STATE TELEPORTATION — $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
-  kill_host "$A/widget/.ocbox-phext"
-  kill_host "$B/widget/.ocbox-phext"
+  stop_daemon "$A/widget/.ocbox-phext"
+  stop_daemon "$B/widget/.ocbox-phext"
   rm -rf "$STATE"
   mkdir -p "$A" "$B"
 
@@ -69,14 +80,109 @@ main() {
 
   echo "--- recording machine A's facts (direct SQ reads, for later assertions) ---"
   python3 - "$A/widget/.ocbox-phext" "$STATE/a-facts.json" <<'PYEOF'
-import json, re, sys, urllib.parse, urllib.request
+import json, re, subprocess, sys
 from pathlib import Path
 store, out_path = Path(sys.argv[1]), Path(sys.argv[2])
-port = json.loads((store / "sq-host.json").read_text())["port"]
+SQ = str(Path.home() / ".cargo" / "bin" / "sq")
+
+def _cli(*args, timeout=60):
+    r = subprocess.run([SQ, *args], cwd=store, capture_output=True,
+                       timeout=timeout)
+    if r.returncode != 0:
+        raise RuntimeError("sq " + args[0] + " failed: "
+                           + r.stderr.decode("utf-8", "replace")[:200])
+    return r.stdout
+
+def _ensure_daemon():
+    import time as _time
+    want = "Hosting: widget.phext"
+    def _hosting():
+        try:
+            out = subprocess.run([SQ, "status"], cwd=store,
+                                 capture_output=True, timeout=10) \
+                .stdout.decode("utf-8", "replace")
+            return want in out
+        except subprocess.TimeoutExpired:
+            return False
+    # Patience first: `sq status` blocks while a daemon loads a large
+    # phext, so probe for a while before concluding none is coming —
+    # spawning anyway stacks duplicate daemons on one phext.
+    deadline = _time.time() + 30
+    while _time.time() < deadline:
+        if _hosting():
+            return
+        _time.sleep(2)
+    # Wedged-daemon recovery: kill any `sq share widget.phext` process
+    # whose cwd is this store (found via /proc — works even when no
+    # sq-daemon.json exists) and clear stale .sq before the respawn.
+    import os as _os, shutil as _shutil, signal as _signal
+    for _entry in Path("/proc").glob("[0-9]*"):
+        try:
+            _cmd = (_entry / "cmdline").read_bytes().decode("utf-8", "replace")
+            if "share" in _cmd and "widget.phext" in _cmd and \
+                    _os.readlink(_entry / "cwd") == str(store):
+                _os.kill(int(_entry.name), _signal.SIGKILL)
+        except OSError:
+            continue
+    _time.sleep(1)
+    _shutil.rmtree(store / ".sq", ignore_errors=True)
+    # Settle before spawning: zero store daemons (even mid-exit) and
+    # no .sq directory — the proven-clean preconditions for `sq share`.
+    import os as _os2, shutil as _shutil2, signal as _signal2
+    def _store_procs():
+        _found = []
+        for _e in Path("/proc").glob("[0-9]*"):
+            try:
+                _c = (_e / "cmdline").read_bytes().decode("utf-8", "replace")
+                if "share" in _c and "widget.phext" in _c and \
+                        _os2.readlink(_e / "cwd") == str(store):
+                    _found.append(int(_e.name))
+            except OSError:
+                continue
+        return _found
+    _dl = _time.time() + 10
+    while _store_procs() and _time.time() < _dl:
+        _time.sleep(0.2)
+    for _pid in _store_procs():
+        try:
+            _os2.kill(_pid, _signal2.SIGKILL)
+        except OSError:
+            pass
+    if _store_procs():
+        _time.sleep(1)
+    _shutil2.rmtree(store / ".sq", ignore_errors=True)
+    subprocess.Popen([SQ, "share", "widget.phext"], cwd=store,
+                     stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL,
+                     stdin=subprocess.DEVNULL, start_new_session=True)
+    deadline = _time.time() + 60
+    while _time.time() < deadline:
+        if _hosting():
+            return
+        _time.sleep(1)
+    raise RuntimeError("verifier could not start the sq daemon")
+
+_ensure_daemon()
+
 def get(endpoint, **params):
-    qs = urllib.parse.urlencode(params)
-    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/v2/{endpoint}?{qs}") as r:
-        return r.read().decode("utf-8", "replace")
+    if endpoint == "toc":
+        return _cli("toc").decode("utf-8", "replace")
+    if endpoint == "select":
+        f = store / ".verify-pull.tmp"
+        _cli("pull", params["c"], str(f))
+        data = f.read_bytes().decode("utf-8", "replace")
+        f.unlink(missing_ok=True)
+        return data
+    if endpoint == "json-export":
+        items = []
+        for line in get("toc", p="widget").splitlines():
+            if line.startswith("* "):
+                c = line[2:].split(":", 1)[0].strip()
+                if c:
+                    items.append({"coord": c,
+                                  "scroll": get("select", p="widget", c=c)})
+        return json.dumps(items)
+    raise ValueError(endpoint)
 E = {}
 for line in get("toc", p="widget").splitlines():
     if line.startswith("* "):
@@ -110,7 +216,7 @@ facts = {"session": meta["session"], "commands": cmds,
 out_path.write_text(json.dumps(facts, indent=1))
 print(json.dumps(facts, indent=1))
 PYEOF
-  kill_host "$A/widget/.ocbox-phext"
+  stop_daemon "$A/widget/.ocbox-phext"
 
   echo
   echo "########## THE JUMP ##########"
@@ -155,15 +261,110 @@ PYEOF
   echo
   echo "=== VERIFICATION (direct SQ reads on machine B's phext) ==="
   python3 - "$B/widget/.ocbox-phext" "$STATE/a-facts.json" "$STATE/briefing.txt" "$STATE/context-after.txt" "$SHA_A" <<'PYEOF'
-import hashlib, json, re, sys, urllib.parse, urllib.request
+import hashlib, json, re, subprocess, sys
 from pathlib import Path
 store, facts_p, briefing_p, ctx_p, sha_a = sys.argv[1:6]
 store = Path(store)
-port = json.loads((store / "sq-host.json").read_text())["port"]
+SQ = str(Path.home() / ".cargo" / "bin" / "sq")
+
+def _cli(*args, timeout=60):
+    r = subprocess.run([SQ, *args], cwd=store, capture_output=True,
+                       timeout=timeout)
+    if r.returncode != 0:
+        raise RuntimeError("sq " + args[0] + " failed: "
+                           + r.stderr.decode("utf-8", "replace")[:200])
+    return r.stdout
+
+def _ensure_daemon():
+    import time as _time
+    want = "Hosting: widget.phext"
+    def _hosting():
+        try:
+            out = subprocess.run([SQ, "status"], cwd=store,
+                                 capture_output=True, timeout=10) \
+                .stdout.decode("utf-8", "replace")
+            return want in out
+        except subprocess.TimeoutExpired:
+            return False
+    # Patience first: `sq status` blocks while a daemon loads a large
+    # phext, so probe for a while before concluding none is coming —
+    # spawning anyway stacks duplicate daemons on one phext.
+    deadline = _time.time() + 30
+    while _time.time() < deadline:
+        if _hosting():
+            return
+        _time.sleep(2)
+    # Wedged-daemon recovery: kill any `sq share widget.phext` process
+    # whose cwd is this store (found via /proc — works even when no
+    # sq-daemon.json exists) and clear stale .sq before the respawn.
+    import os as _os, shutil as _shutil, signal as _signal
+    for _entry in Path("/proc").glob("[0-9]*"):
+        try:
+            _cmd = (_entry / "cmdline").read_bytes().decode("utf-8", "replace")
+            if "share" in _cmd and "widget.phext" in _cmd and \
+                    _os.readlink(_entry / "cwd") == str(store):
+                _os.kill(int(_entry.name), _signal.SIGKILL)
+        except OSError:
+            continue
+    _time.sleep(1)
+    _shutil.rmtree(store / ".sq", ignore_errors=True)
+    # Settle before spawning: zero store daemons (even mid-exit) and
+    # no .sq directory — the proven-clean preconditions for `sq share`.
+    import os as _os2, shutil as _shutil2, signal as _signal2
+    def _store_procs():
+        _found = []
+        for _e in Path("/proc").glob("[0-9]*"):
+            try:
+                _c = (_e / "cmdline").read_bytes().decode("utf-8", "replace")
+                if "share" in _c and "widget.phext" in _c and \
+                        _os2.readlink(_e / "cwd") == str(store):
+                    _found.append(int(_e.name))
+            except OSError:
+                continue
+        return _found
+    _dl = _time.time() + 10
+    while _store_procs() and _time.time() < _dl:
+        _time.sleep(0.2)
+    for _pid in _store_procs():
+        try:
+            _os2.kill(_pid, _signal2.SIGKILL)
+        except OSError:
+            pass
+    if _store_procs():
+        _time.sleep(1)
+    _shutil2.rmtree(store / ".sq", ignore_errors=True)
+    subprocess.Popen([SQ, "share", "widget.phext"], cwd=store,
+                     stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL,
+                     stdin=subprocess.DEVNULL, start_new_session=True)
+    deadline = _time.time() + 60
+    while _time.time() < deadline:
+        if _hosting():
+            return
+        _time.sleep(1)
+    raise RuntimeError("verifier could not start the sq daemon")
+
+_ensure_daemon()
+
 def get(endpoint, **params):
-    qs = urllib.parse.urlencode(params)
-    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/v2/{endpoint}?{qs}") as r:
-        return r.read().decode("utf-8", "replace")
+    if endpoint == "toc":
+        return _cli("toc").decode("utf-8", "replace")
+    if endpoint == "select":
+        f = store / ".verify-pull.tmp"
+        _cli("pull", params["c"], str(f))
+        data = f.read_bytes().decode("utf-8", "replace")
+        f.unlink(missing_ok=True)
+        return data
+    if endpoint == "json-export":
+        items = []
+        for line in get("toc", p="widget").splitlines():
+            if line.startswith("* "):
+                c = line[2:].split(":", 1)[0].strip()
+                if c:
+                    items.append({"coord": c,
+                                  "scroll": get("select", p="widget", c=c)})
+        return json.dumps(items)
+    raise ValueError(endpoint)
 E = {}
 for line in get("toc", p="widget").splitlines():
     if line.startswith("* "):
@@ -231,7 +432,7 @@ PYEOF
   echo "Machine B phext after continuation: $B_PHEXT"
   echo "SHA-256: $(sha256sum "$B_PHEXT" | awk '{print $1}')"
   echo "Size: $(stat -c %s "$B_PHEXT") bytes (A's file was $SIZE_A bytes)"
-  kill_host "$B/widget/.ocbox-phext"
+  stop_daemon "$B/widget/.ocbox-phext"
   sleep 1
   echo "=== teleport complete (verification rc=$rc) ==="
   return $rc

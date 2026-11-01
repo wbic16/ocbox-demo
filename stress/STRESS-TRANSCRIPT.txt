@@ -1,10 +1,9 @@
-=== ocbox x phext STRESS — 2026-11-01T10:33:52Z ===
+=== ocbox x phext STRESS — 2026-11-01T17:45:22Z ===
 --- cleaning prior stress state ---
 --- generating stress project in /home/hatch/workspace/ocbox-phext/stress/.stress-state/src ---
 $ ocbox start   (session 1)
-Session s_a93c ready — project stress (int 2), session int 1
-Workspace: /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_a93c/workspace
-Phext: /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+session s_1 started — project stress (int 2)
+workspace: /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_1/workspace
 --- CASE 1: volume / chunking (~5 MB of stdout) ---
 $ ocbox exec seq 1 700000   (stdout redirected to a capture file)
 (ocbox exit: 0; captured stdout: 4788895 bytes, sha256 52ecaed6c269043703c6bfff09b6848da63a3bcbf5d168d980bb85990f480fa7)
@@ -25,11 +24,11 @@ only stderr here
 $ ocbox exec dd if=/dev/urandom bs=1024 count=64   (stdout redirected to a capture file)
 64+0 records in
 64+0 records out
-65536 bytes (66 kB, 64 KiB) copied, 0.000350977 s, 187 MB/s
-(ocbox exit: 0; captured stdout: 65536 bytes, sha256 3cc6e1b0e58eae122dcf2017707d24963e0a38c5a5c3cd9fda3b5daa09c9f740)
+65536 bytes (66 kB, 64 KiB) copied, 0.000555806 s, 118 MB/s
+(ocbox exit: 0; captured stdout: 65536 bytes, sha256 270b77923b73d1ca38e0df8258ae03004cdbbdf69cc0f40ac81abd428b079ace)
 --- CASE 4b: binary stdout (openssl rand 4096, raw) ---
 $ ocbox exec openssl rand 4096   (stdout redirected to a capture file)
-(ocbox exit: 0; captured stdout: 4096 bytes, sha256 961a015fb6aebc392b14b80a0fd07dcae5ef27ad2ce7225c35fce946dcac127f)
+(ocbox exit: 0; captured stdout: 4096 bytes, sha256 aed721a5bced7fd99b45a152cb935e05ca7dadd1ab13e7e4f225824726096091)
 --- CASE 5a: unicode + emoji + combining characters ---
 $ ocbox exec python3 -c "print('héllo wörld 🌍🔥'); print('é combining, ünïcodé')"
 héllo wörld 🌍🔥
@@ -56,8 +55,7 @@ $ ocbox exec python3 -c "import os, signal; os.kill(os.getpid(), signal.SIGTERM)
 Terminated
 (ocbox exit: 143)
 $ ocbox exec exec python3 -c "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"
-ocbox: command terminated by signal SIGTERM (15)
-(ocbox exit: 143)
+(ocbox exit: 241)
 $ ocbox exec printf 'alpha\nbeta\n' > g.txt; grep zzz g.txt
 (ocbox exit: 1)
 $ ocbox exec printf 'a\n' > d1.txt; printf 'b\n' > d2.txt; diff d1.txt d2.txt
@@ -262,15 +260,14 @@ words.txt
 $ ocbox exec dd if=/dev/urandom of=big.bin bs=1M count=10; printf 'tail' >> blob.bin
 10+0 records in
 10+0 records out
-10485760 bytes (10 MB, 10 MiB) copied, 0.0380505 s, 276 MB/s
+10485760 bytes (10 MB, 10 MiB) copied, 0.0448874 s, 234 MB/s
 (ocbox exit: 0)
 $ ocbox stop   (session 1)
-Session s_a93c stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+record complete — checkpoint at 2.1.1/8.1.1/1.1.1
 --- CASE 9: second session on the same project ---
 $ ocbox start   (session 2)
-Session s_8547 ready — project stress (int 2), session int 2
-Workspace: /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_8547/workspace
-Phext: /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+session s_2 started — project stress (int 2)
+workspace: /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_2/workspace
 $ ocbox exec echo second session
 second session
 (ocbox exit: 0)
@@ -278,7 +275,7 @@ $ ocbox exec sha256sum hello.txt
 c301aa3b3f1d30dd367cc57945b7fd56115c99969492d077058e9d453011c6ea  hello.txt
 (ocbox exit: 0)
 $ ocbox stop   (session 2)
-Session s_8547 stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+record complete — checkpoint at 2.2.1/8.1.1/1.1.1
 
 === VERIFICATION (direct SQ reads) ===
 PASS  1 volume chunk count  74 chunks for 4788895 bytes
@@ -300,19 +297,19 @@ PASS  6 exit[timeout 1 sleep 10] == ['124']  recorded 124
 PASS  6 exit[grep zzz] == ['1']  recorded 1
 PASS  6 exit[diff d1.txt] == ['1']  recorded 1
 PASS  6 exit[signal SIGTERM via shell]  recorded exit 143, signal=None
-PASS  6 exit[signal SIGTERM direct]  recorded exit -15, signal=SIGTERM (15)
+PASS  6 exit[signal SIGTERM direct]  recorded exit -15, signal=SIGTERM
 PASS  6 diff exit-1 stdout has the difference  
 PASS  7 seqs contiguous, no gaps/dupes  session 1 seqs 2..82 (81 execs)
 PASS  7 checkpoint final_seq == last seq  final_seq 82
 PASS  8 filenames in manifest+diff  
 PASS  9 session 2 registered + disjoint lanes  registry lines + 9 coords
-PASS  9 session 2 meta chains to session 1  chain 28bb16da1f5e1a83
-PASS  10 big.bin manifest hash == sha256sum  workspace /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_a93c/workspace
+PASS  9 session 2 meta chains to session 1  chain 54646c77dddd6784
+PASS  10 big.bin manifest hash == sha256sum  workspace /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_1/workspace
 PASS  10 modified binary = hash record, no difflib dump  
-phext size: 5167598 bytes (5167256 bytes of scroll text, 250 scrolls)
+phext size: 5198797 bytes (5198453 bytes of scroll text, 251 scrolls)
 STRESS RESULT: 28/28 PASS
 
 Stress phext: /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
-SHA-256: 6d4c68e90df5c7e13be28dd9e582760975c6ec083cf0498303a65f1c5a89aeb4
-Size: 5167598 bytes
+SHA-256: b282f527ed69d1ef6318689c3f0612151d2d7bc9d21767211b0c088cc8fad222
+Size: 5198797 bytes
 === stress complete (verification rc=0) ===

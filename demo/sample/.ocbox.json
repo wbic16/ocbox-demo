@@ -1,4 +1,5 @@
 {
- "project": "sample",
- "env_refs": []
+  "project": "sample",
+  "phext_store": null,
+  "env_refs": []
 }

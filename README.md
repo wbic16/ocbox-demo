@@ -109,9 +109,11 @@ Two layers, one direction of trust:
   in it, snapshotting file hashes, destroying it. This is the only layer
   that would change for the real opencloudbox.
 - **Phext writer** (`PhextWriter`): the single, trusted-side writer to SQ.
-  It manages an `sq host` subprocess (free port, `--data-dir` = the
-  project's phext store, port/pid recorded in `sq-host.json` in that store
-  dir; an existing live host is reused). Session output is inert *data* to
+  It drives SQ in **daemon mode**: `sq share <phext>` in the store dir,
+  payloads moved byte-exact via `pull`/`push`, small appends via `insert`,
+  plus `toc`/`save`/`shutdown` (see "Transport" under Known MVP limits for
+  why daemon, and GAP-ANALYSIS.md's fix-pass addendum for the measured
+  decision). Session output is inert *data* to
   this layer — untrusted output never gets a handle to SQ and never chooses
   a coordinate or a sequence number.
 
@@ -131,13 +133,13 @@ repo).
 |---|---|
 | `ocbox init` | Write `.ocbox.json` (project name) in the current directory |
 | `ocbox start` | Start a Session: copy the project into a fresh workspace, register the project/session, write meta (class 1) and env **names only** (class 7) |
-| `ocbox exec <command...>` | Run in the session workspace, streaming output live; on exit, flush transcript / stdout / stderr scrolls and return the command's exit code |
+| `ocbox exec [--interactive] [--timeout N] <command...>` | Run in the session workspace, streaming output live; on exit, flush transcript / stdout / stderr scrolls and return the command's exit code. stdin defaults to DEVNULL (`--interactive` inherits it); `--timeout N` (or `OCBOX_EXEC_TIMEOUT`) kills the command's process group on expiry and records the timeout |
 | `ocbox status` | Current project, session, workspace, sequence state |
 | `ocbox ls` | All sessions across projects known to the shim |
-| `ocbox context` | **New command (this integration, not upstream ocbox):** print the phext toc, which coordinates changed since the last `context`, and the latest checkpoint |
-| `ocbox stop` | Pre-stop capture (diff → class 5, manifest → class 6, checkpoint → class 8), then mark the session stopped |
-| `ocbox destroy` | Delete the session workspace. The phext remains — that is the point |
-| `ocbox teleport-in <file.phext>` | **Layer 4:** in a fresh environment, rebuild writer state from a phext file alone and print a resume briefing generated only from phext data (see "State teleportation") |
+| `ocbox context [--lane <class>] [--session <int>] [--full]` | **New command (this integration, not upstream ocbox):** print a per-session/class toc *summary* (coordinate + size + clipped preview only with `--full` or a scope filter), which coordinates changed since the last `context`, and the latest checkpoint. A no-change resume on the 5 MB stress phext prints ~1 KB and costs 4 SQ ops (see POLISH.md Layer 5) |
+| `ocbox stop` | Pre-stop capture (diff → class 5, manifest → class 6, checkpoint → class 8), then mark the session stopped and shut the store's SQ daemon down (`context`/`start` restart it on demand). If the workspace vanished mid-session, the record says so (`workspace: missing at stop`) instead of claiming completeness |
+| `ocbox destroy [--force]` | Delete the session workspace. The phext remains — that is the point. Refuses on an *active* session; `--force` first writes a tombstone line into the session's meta lane |
+| `ocbox teleport-in [--expect-sha256 <hex>] [--adopt] <file.phext>` | **Layer 4:** in a fresh environment, rebuild writer state from a phext file alone and print a resume briefing generated only from phext data (see "State teleportation"). The incoming phext is validated *before* it is installed (structure, checkpoint consistency, per-stream hashes); the briefing prints the file's SHA-256 and an `integrity: OK / DEGRADED` verdict. A registry name that doesn't match the local project is refused unless `--adopt` is passed |
 
 Every subcommand has `ocbox help <command>` text. The CLI's own exit
 codes: 0 on success, 2 for usage/state errors (no project, no active
@@ -148,7 +150,11 @@ for signal deaths, the signal name).
 
 Copy exclusions at `start`: `.git`, `*.phext`, `.ocbox-phext` (the phext
 store must never be synced *into* a session), `.ocbox.json`, `__pycache__`,
-`node_modules`.
+`node_modules`. **Symlinks are never followed out of the project:**
+directory symlinks are not descended; a file symlink is copied as a
+regular file only when its resolved target is a file inside the project
+(and not excluded); anything else is skipped and recorded in the meta
+lane and the stop manifest as `symlink-skipped`.
 
 ## Coordinate map
 
@@ -234,46 +240,111 @@ is the session's memory, not its disk.
 ## How the demo verifies itself
 
 `run_demo.sh` ends with an independent check that talks to SQ directly
-(not through the CLI): it pulls `json-export`, groups every coordinate by
+(not through the CLI): it shares the phext with its own daemon, reads
+every coordinate via `toc` + `pull` (byte-exact), groups them by
 class, asserts all eight classes and both registry scrolls are present, and
 content-checks the stderr scroll (the failing command's message), the diff
 scroll (the created + modified files), the manifest, and the checkpoint
-(contains the pre-checkpoint SQ checksum). The full output, verification
+(contains the pre-checkpoint phext checksum). The full output, verification
 included, is in `demo/DEMO-TRANSCRIPT.txt`.
 
 ## Known MVP limits
 
 - **Local provider only.** No real remote compute, no `login`/`sync`/
   `snapshot` — the shim implements the lifecycle subset the demo needs.
-- **No SQ key locally.** The managed `sq host` runs without `--key` on a
-  free localhost port. Set `OCBOX_SQ_KEY` and the CLI starts SQ with that
-  key and sends it as the `Authorization` header. (SQ binds `0.0.0.0` —
-  don't run a no-key host on an untrusted network.)
-- **The checkpoint checksum is the *pre-checkpoint* checksum** — taken
-  before the checkpoint scroll itself is inserted, and labelled as such in
-  the scroll.
-- **`context` delta is MVP-simplified.** It fetches SQ's `/delta` (and
-  records its SHA-256), but the changed-coordinate list is computed by
-  comparing per-scroll SHA-256 hashes (read exactly, see the next bullet)
-  against the delta-state file kept in the store dir — because SQ
-  0.6.0's `GET /delta` returns a raw delta phext, not the parsed checksum
-  map the README wording suggests.
+- **Transport: SQ daemon mode (fix pass, 2026-11-01).** The writer uses
+  `sq share` + the SQ CLI in the store directory — filesystem-local IPC,
+  **no TCP listener, no port, no key**. The earlier HTTP host mode
+  (0.0.0.0, keyless unless `OCBOX_SQ_KEY` was set, hosts left running,
+  port files adopted unvalidated) is gone; `OCBOX_SQ_KEY` is now
+  **ignored** — there is nothing local for a key to protect. The daemon
+  is started on demand, validated as belonging to the store directory,
+  and shut down by `stop`/`destroy`. Measured latency is at parity with
+  HTTP (GAP-ANALYSIS.md addendum has the table). One caveat found in
+  testing: SQ daemons occasionally wedge (alive, not answering);
+  the writer detects this via /proc + a single warm-up op and recovers
+  the store's daemon automatically. SQ still rewrites the whole phext
+  per mutation — that cost is transport-independent and unchanged.
+- **The checkpoint checksum is the *pre-checkpoint* checksum** — the
+  SHA-256 of the phext file after the diff, manifest and lane-map
+  scrolls are written and saved, before the checkpoint scroll itself is
+  inserted, and labelled as such in the scroll.
+- **`context` change detection is local.** It compares per-scroll
+  SHA-256 hashes against a store-local `delta-state.json`, seeded from
+  the checkpoint's lane-hash map on a teleported phext — SQ's daemon
+  `delta` is not used (its semantics differ across SQ versions, and
+  daemon `checksum` is per-scroll only). Changed coordinates are listed;
+  unchanged lanes are never pulled.
 - **SQ `json-export` is lossy.** It escapes neither tab characters nor
   backslashes inside scrolls: a recorded command line containing a
   literal `\r` (backslash-r) parses back as a real carriage return, and
   literal tabs need lenient parsing (`json.loads(..., strict=False)`).
   The phext itself is byte-exact — so wherever bytes matter, this writer
-  reads via `toc` + per-coordinate `select` (`PhextWriter.export_exact`)
-  instead, and so do all the verification passes in this repo. (Found by
+  reads via `toc` + per-coordinate `pull` instead, and so do all the
+  verification passes in this repo. (Found by
   the Layer 2 stress run; see POLISH.md.)
 - **Binary output costs ~4/3× its size** in the phext (base64), plus the
   header scroll. That is the price of keeping the phext pure text that a
   human can open; the raw bytes' SHA-256 in the transcript keeps it
   honest.
-- **Single writer.** Sequence allocation is only safe because one CLI
-  process writes a project's phext at a time (SPEC-v0.2 §6).
+- **Single project, serialized writers.** State mutation is serialized
+  with an advisory file lock (`state.lock` in the shim home), so
+  concurrent `ocbox` invocations queue instead of corrupting state —
+  but do not invoke `ocbox` from inside an `ocbox exec` command (it
+  would wait on the lock its parent holds). Sequence allocation is
+  still per-project (SPEC-v0.2 §6).
 - **Env lane holds names only** — variable names present plus any names
   referenced in `.ocbox.json` — never values, by design.
+- **Redaction is opt-in and best-effort.** Set `OCBOX_REDACT` to a
+  comma-separated list of regexes and matching spans in the recorded
+  command line and in stdout/stderr are replaced with `[redacted]`
+  before anything is hashed or stored; the count is recorded in the
+  transcript. The phext is a *record* — it gets published as demo
+  evidence — so don't put secrets in argv in the first place.
+- **Teleport integrity has a stated boundary.** `teleport-in` verifies
+  structure, checkpoint consistency and every recorded stream hash, and
+  prints an `integrity:` verdict; the GAP audit's truncation class
+  (40% tail cut) is caught. A truncation confined to the tail of the
+  final scroll, where that scroll carries no hash of its own, is not
+  detectable from the file alone — use `--expect-sha256` with an
+  out-of-band hash when the transfer channel is untrusted.
+- **Killing the CLI.** `exec` runs the wrapped command in its own
+  process group and forwards SIGINT/SIGTERM to it. `kill -9` of the CLI
+  itself cannot be intercepted by any program — the wrapped command
+  may survive it; the phext record stays consistent either way (the
+  transcript is written last, as the commit record).
+
+## SPEC-DEVIATIONS (fix pass, 2026-11-01 — v0.3 candidates)
+
+SPEC-v0.2.md is unchanged; where the fix pass diverges from or extends
+it, the divergence lives here:
+
+- **Lane-hash map scroll (addition).** At `stop`, the writer stores a
+  map scroll in the checkpoint class (chunk 2 of the checkpoint seq):
+  one `coordinate<TAB>sha256` line per scroll of the session, classes
+  1–7. The checkpoint scroll references it (`lane_map_coord`,
+  `lane_map_sha256`, `lane_map_scrolls`) and `delta_sha256` is now the
+  hash of that map. This is what makes §4 resume cheap and
+  teleport-verifiable.
+- **Checkpoint per-class counters + chain (closes a §B divergence).**
+  The checkpoint carries `max_seq_<class>` for every class and
+  `prev_checkpoint_sha256`, chaining each checkpoint to the previous
+  one — §3's "final sequence counters per class" and the delta map are
+  now actually present.
+- **§4 resume mechanism.** Change detection uses the lane-hash map +
+  a store-local delta-state file, not SQ's `delta` endpoint or ranged
+  `query` (daemon `delta` semantics diverge across SQ versions;
+  `query` is unnecessary once the map is in the phext). The §4
+  *outcome* — resume reads a toc and a delta, not the whole log — is
+  met and measured (POLISH.md Layer 5).
+- **Transport.** SPEC §0/§2 assume SQ's HTTP API and per-project keys.
+  The implementation uses SQ daemon mode (local IPC); keys do not
+  apply locally. If a networked SQ deployment is ever targeted, the
+  key story returns with it — and, per the Submilli Route A invariant,
+  the key must then live only on the trusted side of the writer.
+- **Sequence counter location.** Still in writer state mid-session
+  (mirrored to the checkpoint at stop, and recoverable from the lanes
+  at teleport-in); the §B compromise stands.
 
 ## Re-pointing at the real ocbox CLI later
 
@@ -299,3 +370,7 @@ included, is in `demo/DEMO-TRANSCRIPT.txt`.
 - `stress/run_stress.sh` + `stress/STRESS-TRANSCRIPT.txt` — the stress
   gauntlet (Layer 2); the stress/showcase/teleport `.phext` files are
   kept as evidence under their (otherwise gitignored) state dirs
+- `tests/fix_regressions.sh` — the fix-pass regression suite (Layer 5):
+  one assert group per GAP-ANALYSIS finding
+- `GAP-ANALYSIS.md` — the audit, with a dated fix-pass addendum:
+  transport decision, per-gap resolutions, before/after measurements

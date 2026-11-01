@@ -6,11 +6,13 @@
 demo/.demo-state/
 .ocbox-shim/
 
-# SQ host runtime files inside the demo phext store
-demo/sample/.ocbox-phext/sq-host.json
-demo/sample/.ocbox-phext/sq-host.log
+# SQ daemon runtime files inside the demo phext store
+demo/sample/.ocbox-phext/sq-daemon.json
+demo/sample/.ocbox-phext/sq-daemon.log
 demo/sample/.ocbox-phext/delta-state.json
 demo/sample/.ocbox-phext/.sq/
+demo/sample/.ocbox-phext/.ocbox-tmp/
+demo/sample/.ocbox-phext/.validate-*/
 demo/sample/.ocbox-phext/.phext
 demo/sample/.ocbox-phext/*.phext.json
 

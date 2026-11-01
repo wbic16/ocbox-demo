@@ -1,57 +1,72 @@
 sample	2
-2	s_316e	1
+s_1	1
 project: sample
 project_int: 2
-session: s_316e
+session: s_1
 session_int: 1
+started: 2026-11-01T17:46:35Z
 provider: local-shim
-image: n/a
-started: 2026-11-01T10:33:29+00:00
-workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_316e/workspace
-exec seq=2 cmd=python3 hello.py exit=0 duration_s=0.027
-exec seq=3 cmd=python3 -m unittest -v exit=0 duration_s=0.092
-exec seq=4 cmd=python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md exit=0 duration_s=0.027
-exec seq=5 cmd=python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)" exit=3 duration_s=0.027
+workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
+exec 2: python3 hello.py (exit 0)
+exec 3: python3 -m unittest -v (exit 0)
+exec 4: python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md (exit 0)
+exec 5: python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)" (exit 3)
 $ python3 hello.py
+started: 2026-11-01T17:46:35Z
+cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exit: 0
+duration_ms: 27
+timed_out: false
+stdout_chunks: 1
+stderr_chunks: 1
 stdout_bytes: 74
+stderr_bytes: 0
 stdout_sha256: 21c7c1c3396e79ce7fecff07052752d1a901700abaf073edec1ca8173a83ec72
-stdout_encoding: utf-8
-stderr_bytes: 0
 stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stderr_encoding: utf-8
-duration_s: 0.027
-at: 2026-11-01T10:33:29+00:00
+stdout_encoding: text
+stderr_encoding: text
 $ python3 -m unittest -v
+started: 2026-11-01T17:46:35Z
+cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exit: 0
+duration_ms: 83
+timed_out: false
+stdout_chunks: 1
+stderr_chunks: 1
 stdout_bytes: 0
-stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stdout_encoding: utf-8
 stderr_bytes: 204
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stderr_sha256: afa72c81c4eb4b27bb9de7683d5b8eade4556550f32051cd8c14258abd66eb9b
-stderr_encoding: utf-8
-duration_s: 0.092
-at: 2026-11-01T10:33:30+00:00
+stdout_encoding: text
+stderr_encoding: text
 $ python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md
+started: 2026-11-01T17:46:35Z
+cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exit: 0
+duration_ms: 26
+timed_out: false
+stdout_chunks: 1
+stderr_chunks: 1
 stdout_bytes: 0
-stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stdout_encoding: utf-8
 stderr_bytes: 0
-stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stderr_encoding: utf-8
-duration_s: 0.027
-at: 2026-11-01T10:33:30+00:00
-$ python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)"
-exit: 3
-stdout_bytes: 0
 stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stdout_encoding: utf-8
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: text
+stderr_encoding: text
+$ python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)"
+started: 2026-11-01T17:46:35Z
+cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
+exit: 3
+duration_ms: 29
+timed_out: false
+stdout_chunks: 1
+stderr_chunks: 1
+stdout_bytes: 0
 stderr_bytes: 32
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stderr_sha256: 817f9a1133999faf3df75ca394223a57d0d3222105190aabb5a87a4942e4a4ee
-stderr_encoding: utf-8
-duration_s: 0.027
-at: 2026-11-01T10:33:30+00:00
+stdout_encoding: text
+stderr_encoding: text
 hello, world
 hello from the remote session (which is really a local shim)
 test_default (test_hello.TestHello.test_default) ... ok
@@ -62,13 +77,7 @@ Ran 2 tests in 0.000s
 
 OK
 something went wrong on purpose
-added: 1
-+ notes.txt
-modified: 1
-* README.md
-deleted: 0
-
---- diff for README.md ---
+--- diff for README.md ---
 --- a/README.md
 +++ b/README.md
 @@ -2,3 +2,4 @@
@@ -76,25 +85,42 @@ deleted: 0
  A tiny repo that exists only so `run_demo.sh` has something to run a
  session against: one program that prints, one test that passes.
 +a change from inside the session
-
+--- diff for notes.txt ---
+--- /dev/null
++++ b/notes.txt
+@@ -0,0 +1 @@
++created inside the session
 README.md	176	a77d67d16e9c42a783b54d058da202e65e53fbe10363fc57db13c4cca9bd1db0
 hello.py	234	2b91f3d0e036c5e8a3d369e978f2aa5e4a588eb19b01716ed4198f6a98d537bc
 notes.txt	27	6448821d224142cf158cf17db28b6559763d99f90e1446a8ca3ab942be8a5da1
 test_hello.py	298	f4126a242c0382c86b80caccb6afdc383c8be3d3604714aebe861b7cbd91b4d2
-HOME
-LC_CTYPE
-OCBOX_DEMO_SANITIZED
-OCBOX_SHIM_HOME
-OLDPWD
-PATH
-PWD
-SHLVL
-_
-session: s_316e
+git.safe.directory	/home/hatch
+session: s_1
 session_int: 1
 project_int: 2
-stopped: 2026-11-01T10:33:30+00:00
+stopped: 2026-11-01T17:46:36Z
 final_seq: 5
-pre_checkpoint_checksum: 9497c41f3c069180c6e0a9b5c4eefe1f
-note: checksum was taken BEFORE this checkpoint scroll was inserted
-delta_sha256: 19e50c9a2c605286f0aef25dae3d0bb4b6c96084366de103a9cc47d4d6cbd166
+max_seq_meta: 1
+max_seq_transcript: 5
+max_seq_stdout: 2
+max_seq_stderr: 5
+max_seq_diff: 1
+max_seq_files: 1
+max_seq_env: 1
+max_seq_checkpoint: 1
+lane_map_coord: 2.1.1/8.1.1/2.1.1
+lane_map_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
+lane_map_scrolls: 11
+pre_checkpoint_checksum: e8e9ac9874d32c9f7b6a871b27752c00bd15d39e489e5a97b725a810787e5bec
+delta_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
+2.1.1/1.1.1/1.1.1	15480ac2bb25655c0b6ba3b497177236a479fa49386de2a846e172c60685a65b
+2.1.1/2.1.1/2.1.1	768ab9ce47417a2460071c6e015e19aaece40e0d5234bfd4a8f5f91c83ce259d
+2.1.1/2.1.1/3.1.1	8458c54a89097e8ab5a1999f1affe4a487217927e330004bfc727730934df50b
+2.1.1/2.1.1/4.1.1	7add11043b7142284c146f6de3d63e8b40e18e399ed204dd0182ee39d9c1b31e
+2.1.1/2.1.1/5.1.1	3d378af905c2b5c9d8f9bddda14a0c88be5a6591f6a1f4dd35b2acf49efecdf2
+2.1.1/3.1.1/2.1.1	21c7c1c3396e79ce7fecff07052752d1a901700abaf073edec1ca8173a83ec72
+2.1.1/4.1.1/3.1.1	afa72c81c4eb4b27bb9de7683d5b8eade4556550f32051cd8c14258abd66eb9b
+2.1.1/4.1.1/5.1.1	817f9a1133999faf3df75ca394223a57d0d3222105190aabb5a87a4942e4a4ee
+2.1.1/5.1.1/1.1.1	ddb500c89b79de524b0ce35dbc04c7e01b6b021214d813ac3d7e7a80fd8c4436
+2.1.1/6.1.1/1.1.1	560d9168e6aaac86a44d9981a9f3b6662d8673ec97309079d9733335517e0fc8
+2.1.1/7.1.1/1.1.1	b4ee929f03e5b037cfa851ae331274932df3be8a965dfb768e4667a3340aa6d5

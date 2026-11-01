@@ -194,3 +194,71 @@ repo, matching opencloudbox's explicit-Project-movement model.
 - The demo/stress/showcase/teleport transcripts contain this machine's
   absolute paths and per-run session ids; coordinates, hashes and check
   results are the stable content.
+
+
+## Layer 5 — Fix pass (2026-11-01): daemon transport + the GAP-ANALYSIS majors
+
+Directed by Will ("fix the bugs and consider using sq in daemon
+mode"). The full record — transport decision, per-gap resolution
+table, before/after numbers — is the dated addendum in
+GAP-ANALYSIS.md; this is the layer summary.
+
+**Transport: SQ daemon mode, daemon-only.** The writer drives
+`sq share` + CLI ops (`pull`/`push` for payloads — `select` to stdout
+appends a trailing newline and must not carry bytes; argv `insert`
+for small appends; `toc`, `save`, `shutdown`). The HTTP host path was
+deleted: no listener, no port adoption, no key story (`OCBOX_SQ_KEY`
+is a documented no-op locally). Latency is at parity with HTTP
+(medians on the stress phext: small update 1.69 ms vs 2.97 ms;
+64 KB push 1.77 ms vs 2.66 ms; toc 12.84 ms vs 8.37 ms). Daemon
+mutations need `sq save` to reach the file (4 ms on 5 MB; the writer
+saves once per command). The needed CLI ops were verified live on
+SQ 0.5.6 (rock-mountain) as well as 0.6.0 locally.
+
+Two daemon behaviours shaped the writer. (1) **No whole-phext
+checksum/delta**: daemon `checksum` is per-scroll and `delta`'s
+semantics diverge across versions, so identity is the writer-computed
+SHA-256 of the phext file after save. (2) **IPC wedging**: SQ daemons
+intermittently stop answering while alive, correlated with
+timeout-killed probe clients. The writer's discipline: existence from
+/proc (cmdline + cwd), one long-fused warm-up op instead of probe
+loops, settle-before-spawn, store-scoped recovery (SIGKILL verified
+store processes, clear `.sq`, respawn once), and an escalating
+shutdown (CLI → SIGTERM → SIGKILL).
+
+**Majors fixed** (regression tests in `tests/fix_regressions.sh`,
+35/35): symlink containment at start/snapshot (P9a/P9b); flock-
+serialized state + atomic saves, concurrent execs both land (P1);
+teleport-in validation + integrity verdict + `--expect-sha256` +
+`--adopt`, checkpoint-less sessions rebuild as `interrupted` with
+lane-derived seq (P2/P3a/P4); host trust eliminated by the transport
+(P6/P11a); context economy (P10). **Minors fixed:** missing-workspace
+stop honesty (P8), exec stdin DEVNULL / `--interactive` /
+`--timeout` + process-group signal forwarding (P5/P12; kill -9 of the
+CLI remains unhandleable by construction), transport preflight at
+start (P7), project-name collision checks (P13), destroy refusal +
+`--force` tombstone (R2), no blind write retries (R3), `OCBOX_REDACT`
+(R4), transcript-last flush ordering (R6). **Left open deliberately:**
+R5 (state keyed by absolute path; teleport-in is the recovery).
+
+**Checkpoint grows** (SPEC-DEVIATIONS in README, v0.3 candidates): a
+lane-hash map scroll (coordinate→SHA-256) at the checkpoint class,
+per-class max-seq counters, and `prev_checkpoint_sha256` — the E4
+checkpoint chain. `pre_checkpoint_checksum` is now the phext-file
+SHA-256 taken after diff+manifest+map are saved, before the
+checkpoint insert.
+
+**Context economy, measured** (op-counting `SQ_BIN` wrapper, stress
+phext 5,198,797 B / 251 scrolls): no-change resume went from
+**352,836 B / 252–503 requests** (audit) to **1,001 B / 4 transport
+ops**. The one-time baseline context costs 259 ops (a full hash pass)
+or zero when a checkpoint lane map already exists.
+
+**Suites against the final binary:** demo PASS · stress 28/28 ·
+showcase 14/14 · teleport 10/10 · fix regressions 35/35. All four
+verifiers were ported from HTTP reads to daemon-CLI reads
+(json-export is synthesized from toc+pull, byte-exact). One honest
+caveat: under heavy concurrent load on this machine, a single
+regression-suite assert has occasionally flaked (daemon wedge class)
+and passed on rerun; the suites' verifiers use the same
+settle/recovery discipline as the writer.

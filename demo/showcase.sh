@@ -25,12 +25,23 @@ export OCBOX_SHIM_HOME="$SHIM"
 OCBOX="$ROOT_DIR/ocbox"
 CURL_RC=""
 
-kill_host_from_file() {
-  local f="$STORE/sq-host.json"
-  if [ -f "$f" ]; then
-    local pid
-    pid="$(python3 -c "import json; print(json.load(open('$f'))['pid'])" 2>/dev/null || true)"
-    if [ -n "${pid:-}" ]; then kill "$pid" 2>/dev/null || true; fi
+stop_daemon() {  # $1 = store dir (default $STORE)
+  local d="${1:-$STORE}"
+  if [ -d "$d" ]; then
+    (cd "$d" && timeout 10 "$HOME/.cargo/bin/sq" shutdown >/dev/null 2>&1) || true
+    # reap any verified leftover `sq share` whose cwd is this store
+    python3 - "$d" <<'PYEOF' || true
+import os, signal, sys
+from pathlib import Path
+store = sys.argv[1]
+for e in Path("/proc").glob("[0-9]*"):
+    try:
+        cmd = (e / "cmdline").read_bytes().decode("utf-8", "replace")
+        if "share" in cmd and ".phext" in cmd and os.readlink(e / "cwd") == store:
+            os.kill(int(e.name), signal.SIGTERM)
+    except OSError:
+        continue
+PYEOF
   fi
 }
 
@@ -46,7 +57,7 @@ run() {
 main() {
   echo "=== ocbox x phext SHOWCASE (real tools + ffmpeg) — $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
   echo "--- cleaning prior showcase state ---"
-  kill_host_from_file
+  stop_daemon
   rm -rf "$STATE"
   mkdir -p "$SHIM" "$STORE" "$PROJ"
   cp -r "$DEMO_DIR/showcase-sample/." "$PROJ/"
@@ -107,17 +118,110 @@ main() {
   echo
   echo "=== VERIFICATION (direct SQ reads + workspace cross-check) ==="
   python3 - "$STORE" "$SHIM" "$CURL_RC" <<'PYEOF'
-import base64, hashlib, json, re, sys, urllib.parse, urllib.request
+import base64, hashlib, json, re, subprocess, sys
 from pathlib import Path
 
 store, shim, curl_rc = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
-info = json.loads((store / "sq-host.json").read_text())
-port = info["port"]
+SQ = str(Path.home() / ".cargo" / "bin" / "sq")
+
+def _cli(*args, timeout=60):
+    r = subprocess.run([SQ, *args], cwd=store, capture_output=True,
+                       timeout=timeout)
+    if r.returncode != 0:
+        raise RuntimeError("sq " + args[0] + " failed: "
+                           + r.stderr.decode("utf-8", "replace")[:200])
+    return r.stdout
+
+def _ensure_daemon():
+    import time as _time
+    want = "Hosting: showcase.phext"
+    def _hosting():
+        try:
+            out = subprocess.run([SQ, "status"], cwd=store,
+                                 capture_output=True, timeout=10) \
+                .stdout.decode("utf-8", "replace")
+            return want in out
+        except subprocess.TimeoutExpired:
+            return False
+    # Patience first: `sq status` blocks while a daemon loads a large
+    # phext, so probe for a while before concluding none is coming —
+    # spawning anyway stacks duplicate daemons on one phext.
+    deadline = _time.time() + 30
+    while _time.time() < deadline:
+        if _hosting():
+            return
+        _time.sleep(2)
+    # Wedged-daemon recovery: kill any `sq share showcase.phext` process
+    # whose cwd is this store (found via /proc — works even when no
+    # sq-daemon.json exists) and clear stale .sq before the respawn.
+    import os as _os, shutil as _shutil, signal as _signal
+    for _entry in Path("/proc").glob("[0-9]*"):
+        try:
+            _cmd = (_entry / "cmdline").read_bytes().decode("utf-8", "replace")
+            if "share" in _cmd and "showcase.phext" in _cmd and \
+                    _os.readlink(_entry / "cwd") == str(store):
+                _os.kill(int(_entry.name), _signal.SIGKILL)
+        except OSError:
+            continue
+    _time.sleep(1)
+    _shutil.rmtree(store / ".sq", ignore_errors=True)
+    # Settle before spawning: zero store daemons (even mid-exit) and
+    # no .sq directory — the proven-clean preconditions for `sq share`.
+    import os as _os2, shutil as _shutil2, signal as _signal2
+    def _store_procs():
+        _found = []
+        for _e in Path("/proc").glob("[0-9]*"):
+            try:
+                _c = (_e / "cmdline").read_bytes().decode("utf-8", "replace")
+                if "share" in _c and "showcase.phext" in _c and \
+                        _os2.readlink(_e / "cwd") == str(store):
+                    _found.append(int(_e.name))
+            except OSError:
+                continue
+        return _found
+    _dl = _time.time() + 10
+    while _store_procs() and _time.time() < _dl:
+        _time.sleep(0.2)
+    for _pid in _store_procs():
+        try:
+            _os2.kill(_pid, _signal2.SIGKILL)
+        except OSError:
+            pass
+    if _store_procs():
+        _time.sleep(1)
+    _shutil2.rmtree(store / ".sq", ignore_errors=True)
+    subprocess.Popen([SQ, "share", "showcase.phext"], cwd=store,
+                     stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL,
+                     stdin=subprocess.DEVNULL, start_new_session=True)
+    deadline = _time.time() + 60
+    while _time.time() < deadline:
+        if _hosting():
+            return
+        _time.sleep(1)
+    raise RuntimeError("verifier could not start the sq daemon")
+
+_ensure_daemon()
 
 def get(endpoint, **params):
-    qs = urllib.parse.urlencode(params)
-    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/v2/{endpoint}?{qs}") as r:
-        return r.read().decode("utf-8", "replace")
+    if endpoint == "toc":
+        return _cli("toc").decode("utf-8", "replace")
+    if endpoint == "select":
+        f = store / ".verify-pull.tmp"
+        _cli("pull", params["c"], str(f))
+        data = f.read_bytes().decode("utf-8", "replace")
+        f.unlink(missing_ok=True)
+        return data
+    if endpoint == "json-export":
+        items = []
+        for line in get("toc", p="showcase").splitlines():
+            if line.startswith("* "):
+                c = line[2:].split(":", 1)[0].strip()
+                if c:
+                    items.append({"coord": c,
+                                  "scroll": get("select", p="showcase", c=c)})
+        return json.dumps(items)
+    raise ValueError(endpoint)
 
 E = {}
 for line in get("toc", p="showcase").splitlines():
@@ -155,7 +259,7 @@ trans = {}
 for c, s in E.items():
     m = COORD.match(c)
     if m and int(m.group(3)) == 2:
-        trans[int(m.group(4))] = (s.splitlines()[0][2:], kv(s))
+        trans[int(m.group(4))] = (s.splitlines()[0], kv(s))
 
 def find(needle):
     hits = [(seq, cmd, d) for seq, (cmd, d) in sorted(trans.items()) if needle in cmd]
@@ -242,7 +346,7 @@ PYEOF
   echo "Showcase phext: $STORE/showcase.phext"
   echo "SHA-256: $(sha256sum "$STORE/showcase.phext" | awk '{print $1}')"
   echo "Size: $(stat -c %s "$STORE/showcase.phext") bytes"
-  kill_host_from_file
+  stop_daemon
   sleep 1
   echo "=== showcase complete (verification rc=$rc) ==="
   return $rc
