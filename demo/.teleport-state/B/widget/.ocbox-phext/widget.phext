@@ -5,7 +5,7 @@ s_2	2
 project_int: 2
 session: s_1
 session_int: 1
-started: 2026-11-01T17:47:59Z
+started: 2026-11-01T20:40:08Z
 provider: local-shim
 workspace: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/shim/sessions/widget-s_1/workspace
 exec 2: python3 compute.py (exit 0)
@@ -13,10 +13,10 @@ exec 3: printf 'teleport me\n' > note.txt && sha256sum note.txt (exit 0)
 exec 4: ffmpeg -nostdin -y -f lavfi -i testsrc=duration=1:size=320x240:rate=10 -pix_fmt yuv420p clip.mp4 (exit 0)
 exec 5: cat data.txt (exit 0)
 $ python3 compute.py
-started: 2026-11-01T17:47:59Z
+started: 2026-11-01T20:40:08Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/shim/sessions/widget-s_1/workspace
 exit: 0
-duration_ms: 31
+duration_ms: 30
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -27,7 +27,7 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ printf 'teleport me\n' > note.txt && sha256sum note.txt
-started: 2026-11-01T17:47:59Z
+started: 2026-11-01T20:40:08Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/shim/sessions/widget-s_1/workspace
 exit: 0
 duration_ms: 3
@@ -41,24 +41,24 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ ffmpeg -nostdin -y -f lavfi -i testsrc=duration=1:size=320x240:rate=10 -pix_fmt yuv420p clip.mp4
-started: 2026-11-01T17:47:59Z
+started: 2026-11-01T20:40:08Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/shim/sessions/widget-s_1/workspace
 exit: 0
-duration_ms: 281
+duration_ms: 385
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
 stdout_bytes: 0
 stderr_bytes: 4972
 stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stderr_sha256: fe0d8b53de919abd22cce0dc3fb5c0f2033279b632e279bf9d89fbf45ebd1ee6
+stderr_sha256: a0aa3561f5da5c1b3c6e67173353fec3c9a82a42cec886a2f9340c9abea21cfd
 stdout_encoding: text
 stderr_encoding: text
 $ cat data.txt
-started: 2026-11-01T17:48:00Z
+started: 2026-11-01T20:40:09Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/shim/sessions/widget-s_1/workspace
 exit: 0
-duration_ms: 3
+duration_ms: 4
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -87,10 +87,10 @@ Input #0, lavfi, from 'testsrc=duration=1:size=320x240:rate=10':
   Stream #0:0: Video: wrapped_avframe, rgb24, 320x240 [SAR 1:1 DAR 4:3], 10 fps, 10 tbr, 10 tbn
 Stream mapping:
   Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (libx264))
-[libx264 @ 0x5fca8a154b40] using SAR=1/1
-[libx264 @ 0x5fca8a154b40] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
-[libx264 @ 0x5fca8a154b40] profile High, level 1.2, 4:2:0, 8-bit
-[libx264 @ 0x5fca8a154b40] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=10 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+[libx264 @ 0x561ff30d7b40] using SAR=1/1
+[libx264 @ 0x561ff30d7b40] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x561ff30d7b40] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0x561ff30d7b40] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=10 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
 Output #0, mp4, to 'clip.mp4':
   Metadata:
     encoder         : Lavf62.12.102
@@ -99,26 +99,26 @@ Output #0, mp4, to 'clip.mp4':
       encoder         : Lavc62.28.102 libx264
     Side data:
       CPB properties: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
-[out#0/mp4 @ 0x5fca8a154240] video:6KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 15.670233%
-frame=   10 fps=0.0 q=-1.0 Lsize=       7KiB time=00:00:00.80 bitrate=  73.5kbits/s speed=25.4x elapsed=0:00:00.03    
-[libx264 @ 0x5fca8a154b40] frame I:1     Avg QP:13.70  size:  3309
-[libx264 @ 0x5fca8a154b40] frame P:3     Avg QP:17.05  size:   555
-[libx264 @ 0x5fca8a154b40] frame B:6     Avg QP:14.00  size:   115
-[libx264 @ 0x5fca8a154b40] consecutive B-frames: 20.0%  0.0%  0.0% 80.0%
-[libx264 @ 0x5fca8a154b40] mb I  I16..4: 69.0%  4.7% 26.3%
-[libx264 @ 0x5fca8a154b40] mb P  I16..4:  3.0%  1.3%  1.6%  P16..4:  7.6%  2.7%  2.3%  0.0%  0.0%    skip:81.6%
-[libx264 @ 0x5fca8a154b40] mb B  I16..4:  1.1%  0.3%  0.0%  B16..8:  6.1%  0.9%  0.1%  direct: 0.7%  skip:90.8%  L0:48.8% L1:44.9% BI: 6.2%
-[libx264 @ 0x5fca8a154b40] 8x8 transform intra:8.5% inter:23.1%
-[libx264 @ 0x5fca8a154b40] coded y,uvDC,uvAC intra: 14.0% 40.7% 25.9% inter: 1.4% 3.9% 1.9%
-[libx264 @ 0x5fca8a154b40] i16 v,h,dc,p: 77%  7%  7%  9%
-[libx264 @ 0x5fca8a154b40] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 87%  4%  8%  2%  0%  0%  0%  0%  0%
-[libx264 @ 0x5fca8a154b40] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 47% 29% 16%  2%  1%  2%  0%  2%  0%
-[libx264 @ 0x5fca8a154b40] i8c dc,h,v,p: 37% 19% 37%  7%
-[libx264 @ 0x5fca8a154b40] Weighted P-Frames: Y:0.0% UV:0.0%
-[libx264 @ 0x5fca8a154b40] ref P L0: 82.7%  6.9% 10.4%
-[libx264 @ 0x5fca8a154b40] ref B L0: 86.2%  9.7%  4.1%
-[libx264 @ 0x5fca8a154b40] ref B L1: 97.0%  3.0%
-[libx264 @ 0x5fca8a154b40] kb/s:45.34
+[out#0/mp4 @ 0x561ff30d7240] video:6KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 15.670233%
+frame=   10 fps=0.0 q=-1.0 Lsize=       7KiB time=00:00:00.80 bitrate=  73.5kbits/s speed=29.5x elapsed=0:00:00.02    
+[libx264 @ 0x561ff30d7b40] frame I:1     Avg QP:13.70  size:  3309
+[libx264 @ 0x561ff30d7b40] frame P:3     Avg QP:17.05  size:   555
+[libx264 @ 0x561ff30d7b40] frame B:6     Avg QP:14.00  size:   115
+[libx264 @ 0x561ff30d7b40] consecutive B-frames: 20.0%  0.0%  0.0% 80.0%
+[libx264 @ 0x561ff30d7b40] mb I  I16..4: 69.0%  4.7% 26.3%
+[libx264 @ 0x561ff30d7b40] mb P  I16..4:  3.0%  1.3%  1.6%  P16..4:  7.6%  2.7%  2.3%  0.0%  0.0%    skip:81.6%
+[libx264 @ 0x561ff30d7b40] mb B  I16..4:  1.1%  0.3%  0.0%  B16..8:  6.1%  0.9%  0.1%  direct: 0.7%  skip:90.8%  L0:48.8% L1:44.9% BI: 6.2%
+[libx264 @ 0x561ff30d7b40] 8x8 transform intra:8.5% inter:23.1%
+[libx264 @ 0x561ff30d7b40] coded y,uvDC,uvAC intra: 14.0% 40.7% 25.9% inter: 1.4% 3.9% 1.9%
+[libx264 @ 0x561ff30d7b40] i16 v,h,dc,p: 77%  7%  7%  9%
+[libx264 @ 0x561ff30d7b40] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 87%  4%  8%  2%  0%  0%  0%  0%  0%
+[libx264 @ 0x561ff30d7b40] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 47% 29% 16%  2%  1%  2%  0%  2%  0%
+[libx264 @ 0x561ff30d7b40] i8c dc,h,v,p: 37% 19% 37%  7%
+[libx264 @ 0x561ff30d7b40] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0x561ff30d7b40] ref P L0: 82.7%  6.9% 10.4%
+[libx264 @ 0x561ff30d7b40] ref B L0: 86.2%  9.7%  4.1%
+[libx264 @ 0x561ff30d7b40] ref B L1: 97.0%  3.0%
+[libx264 @ 0x561ff30d7b40] kb/s:45.34
 --- diff for clip.mp4 ---
 added (7352 bytes)
 sha256 at stop: 863b906d2bb552814957ca8cffc5b7eefeca1f2a54895d0c565408ed87a412d6
@@ -136,7 +136,7 @@ note.txt	12	19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9
 session: s_1
 session_int: 1
 project_int: 2
-stopped: 2026-11-01T17:48:00Z
+stopped: 2026-11-01T20:40:09Z
 final_seq: 5
 max_seq_meta: 1
 max_seq_transcript: 5
@@ -147,19 +147,19 @@ max_seq_files: 1
 max_seq_env: 1
 max_seq_checkpoint: 1
 lane_map_coord: 2.1.1/8.1.1/2.1.1
-lane_map_sha256: 55f99af4f8215bfef4d81b49b58ed105e73fc07f8a1bba66935ecfbd3a2c9871
+lane_map_sha256: 896455e4a80ac446065f9fff754e58fd85553f90f5443645637d6a0a89cc76f6
 lane_map_scrolls: 12
-pre_checkpoint_checksum: 6a12f03e86cba4fd21c0d00c1bddb741cf696fd8993a8326fd5bdf824135e895
-delta_sha256: 55f99af4f8215bfef4d81b49b58ed105e73fc07f8a1bba66935ecfbd3a2c9871
-2.1.1/1.1.1/1.1.1	0f6b95a957d51a37964d09917b2de18e3b11dd4054fdec87e27327c1fd0c7962
-2.1.1/2.1.1/2.1.1	8ad908a3669dd3e53313dbf9fe7178e3b1960d02efc8f781057864ed98e631c8
-2.1.1/2.1.1/3.1.1	a66161e141db2e24042ed0a281d8f4a58f36171933609806f7f3391798a63386
-2.1.1/2.1.1/4.1.1	ef534afcd73b7b43938624c7e62cc5f4026c24618de51fddb84a4b02ef709cd5
-2.1.1/2.1.1/5.1.1	d44572d4701254a34e8115ecf5d488cf1e2e78cf18916d65b9033bec177158ca
+pre_checkpoint_checksum: ae2b1feb881222cd9f96736cbf1dd58ab6b8f93e0be88b3a33f0afa4b3e55b10
+delta_sha256: 896455e4a80ac446065f9fff754e58fd85553f90f5443645637d6a0a89cc76f6
+2.1.1/1.1.1/1.1.1	791f1dfbc52a68a84bb6c10cfc70e04ad8848aebd6298df1f97f00091a5c913b
+2.1.1/2.1.1/2.1.1	8608590bbe791428288b3192c531706ff9bcf7a502e70d3bb90c7521dd020704
+2.1.1/2.1.1/3.1.1	a8b1d1ebbc975c48b057f0a2143926b97fedc4c47293b7a4fdd28d5cf5abc177
+2.1.1/2.1.1/4.1.1	6e119f5ccbf846a289ec46414f209a34e39ed4e969b4c1f655acd03e797184fe
+2.1.1/2.1.1/5.1.1	2fc21b47ef787fd176cbde289d4347e345fa5f4c942af08c70568e89c247f4ee
 2.1.1/3.1.1/2.1.1	44bd60fda89682ccec78b3df2f5cb311e7377bf1dee7cd372cf2d6cdef6cb49d
 2.1.1/3.1.1/3.1.1	70985197101ce2f54346161ddb4c507266819e362fbfbacd1537afc393b0d57e
 2.1.1/3.1.1/5.1.1	fbfc8e97536f5f98ab786722bc2f59ce9f1c213d5a23bbe6a5acec0279421a33
-2.1.1/4.1.1/4.1.1	fe0d8b53de919abd22cce0dc3fb5c0f2033279b632e279bf9d89fbf45ebd1ee6
+2.1.1/4.1.1/4.1.1	a0aa3561f5da5c1b3c6e67173353fec3c9a82a42cec886a2f9340c9abea21cfd
 2.1.1/5.1.1/1.1.1	9a1394d463afb334873c718847fcca31f462381494c9cc0f1a755cd0a96b86e8
 2.1.1/6.1.1/1.1.1	72041724e11d5149370932d5977669c989d2c724cb510a826bba3b117f659554
 2.1.1/7.1.1/1.1.1	b4ee929f03e5b037cfa851ae331274932df3be8a965dfb768e4667a3340aa6d5
@@ -167,18 +167,18 @@ delta_sha256: 55f99af4f8215bfef4d81b49b58ed105e73fc07f8a1bba66935ecfbd3a2c9871
 project_int: 2
 session: s_2
 session_int: 2
-started: 2026-11-01T17:49:53Z
+started: 2026-11-01T20:40:10Z
 provider: local-shim
 workspace: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/shim/sessions/widget-s_2/workspace
 continuation_of_session: s_1
 continuation_checkpoint_coord: 2.1.1/8.1.1/1.1.1
-continuation_checkpoint_checksum: 6a12f03e86cba4fd21c0d00c1bddb741cf696fd8993a8326fd5bdf824135e895
+continuation_checkpoint_checksum: ae2b1feb881222cd9f96736cbf1dd58ab6b8f93e0be88b3a33f0afa4b3e55b10
 exec 2: printf 'teleport me\n' > note.txt && sha256sum note.txt (exit 0)
 $ printf 'teleport me\n' > note.txt && sha256sum note.txt
-started: 2026-11-01T17:49:53Z
+started: 2026-11-01T20:40:10Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/shim/sessions/widget-s_2/workspace
 exit: 0
-duration_ms: 4
+duration_ms: 3
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -202,7 +202,7 @@ note.txt	12	19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9
 session: s_2
 session_int: 2
 project_int: 2
-stopped: 2026-11-01T17:49:53Z
+stopped: 2026-11-01T20:40:10Z
 final_seq: 2
 max_seq_meta: 1
 max_seq_transcript: 2
@@ -212,13 +212,13 @@ max_seq_files: 1
 max_seq_env: 1
 max_seq_checkpoint: 1
 lane_map_coord: 2.2.1/8.1.1/2.1.1
-lane_map_sha256: 351489def78b4f3b44799b25878befcc4a50861c262f1ffe867cd6c780c3af1c
+lane_map_sha256: d8cae55b4c475bc277440c270a5a86cd6ca6613ccdebf388c298ab5ed32ffeb5
 lane_map_scrolls: 6
-prev_checkpoint_sha256: f84cb9e0fd22fd25099ff03c0b965ab4a6920eb644c78457bdaa100a778824b6
-pre_checkpoint_checksum: 543e167197f8638c69b6f3ac4c88965a683ac53b5c06a868441b54d711b110f9
-delta_sha256: 351489def78b4f3b44799b25878befcc4a50861c262f1ffe867cd6c780c3af1c
-2.2.1/1.1.1/1.1.1	0c23716b367a54c1f4e26f172682548bc3a15406a92143887c224e5f79903955
-2.2.1/2.1.1/2.1.1	796c91be0f85af7e0eae6c2dd9aec548f00cc11a9846658e0063b612278e142b
+prev_checkpoint_sha256: 80cb21a4faed8c7603549cd7a0990a79d50d52ccd0bbce8201b8f98cb2c986e0
+pre_checkpoint_checksum: 3580a0d0e2eff6af0b124ff22f9700d00c478b797886d980e6bca566fa8658d1
+delta_sha256: d8cae55b4c475bc277440c270a5a86cd6ca6613ccdebf388c298ab5ed32ffeb5
+2.2.1/1.1.1/1.1.1	a88b3d64b960b7e271ca5ea20bf64d399a9e90118700f461658a86c8db44036b
+2.2.1/2.1.1/2.1.1	4bc34c853707c5f131c8ea64c1d7498abe8f516dc7b7ff72a69d411788636231
 2.2.1/3.1.1/2.1.1	70985197101ce2f54346161ddb4c507266819e362fbfbacd1537afc393b0d57e
 2.2.1/5.1.1/1.1.1	aa279fc47f3146a85bd919406e6369049d2ef394ba22682cde2a6a2e61c19264
 2.2.1/6.1.1/1.1.1	4c06e845ec3b2a8e03966a8b09ddec2f52bc95f0772bd3b72e26fea934021c0d

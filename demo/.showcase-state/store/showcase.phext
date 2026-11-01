@@ -4,7 +4,7 @@ showcase	2
 project_int: 2
 session: s_1
 session_int: 1
-started: 2026-11-01T17:46:49Z
+started: 2026-11-01T20:39:15Z
 provider: local-shim
 workspace: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exec 2: ffmpeg -y -f lavfi -i testsrc2=duration=6:size=640x360:rate=30 -f lavfi -i sine=frequency=440:duration=6 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest out.mp4 (exit 0)
@@ -27,24 +27,24 @@ exec 18: node -e "console.log(JSON.stringify({tool: 'node', value: 6 * 7}))" (ex
 exec 19: openssl dgst -sha256 out.mp4 && openssl rand -base64 24 (exit 0)
 exec 20: python3 -m http.server 18799 --bind 127.0.0.1 >/dev/null 2>&1 & SRV=$!; sleep 1; curl -s http://127.0.0.1:18799/hello.txt; RC=$?; kill $SRV 2>/dev/null; exit $RC (exit 0)
 $ ffmpeg -y -f lavfi -i testsrc2=duration=6:size=640x360:rate=30 -f lavfi -i sine=frequency=440:duration=6 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest out.mp4
-started: 2026-11-01T17:46:51Z
+started: 2026-11-01T20:39:17Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 1986
+duration_ms: 1819
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
 stdout_bytes: 0
 stderr_bytes: 5658
 stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stderr_sha256: c095e7b37d3752319478f9f2baf4ed9b632fdec18a8ad33f54232173adf46aa8
+stderr_sha256: afd4d33aad061a1fd243ac7b4ab0f8788594c1eb656bdd801c298a69bb9af69b
 stdout_encoding: text
 stderr_encoding: text
 $ ffprobe -v error -show_format -show_streams -of json out.mp4
-started: 2026-11-01T17:46:52Z
+started: 2026-11-01T20:39:17Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 231
+duration_ms: 86
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -55,10 +55,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ ffprobe -v error -show_format -show_streams -of json out.mp4 > probe_out.json
-started: 2026-11-01T17:46:52Z
+started: 2026-11-01T20:39:17Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 90
+duration_ms: 78
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -69,24 +69,24 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ ffmpeg -y -i out.mp4 -vf scale=320:-2 -c:v libvpx -b:v 300k -c:a libopus clip.webm
-started: 2026-11-01T17:46:56Z
+started: 2026-11-01T20:39:20Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 3850
+duration_ms: 2989
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
 stdout_bytes: 0
-stderr_bytes: 4534
+stderr_bytes: 4298
 stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-stderr_sha256: 8bd5f48a7725ba08beaa6355ee335f25ab7dc9bda57889851fb49c8ea92f2489
+stderr_sha256: 20635ae4a6f00c291b2ba62d77d17720d5af725093207f13fa79b4767128e8c6
 stdout_encoding: text
 stderr_encoding: text
 $ ffprobe -v error -show_format -show_streams -of json clip.webm
-started: 2026-11-01T17:46:56Z
+started: 2026-11-01T20:39:20Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 133
+duration_ms: 60
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -97,10 +97,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ jq . probe_out.json
-started: 2026-11-01T17:46:56Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 8
+duration_ms: 5
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -111,10 +111,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ printf '{not json' > bad.json; jq . bad.json
-started: 2026-11-01T17:46:57Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 5
-duration_ms: 7
+duration_ms: 5
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -125,10 +125,10 @@ stderr_sha256: a8d415a6c27a4e1d66a6adefbfffac24ed0d4fb605ad543cba4f39e892a9fa35
 stdout_encoding: text
 stderr_encoding: text
 $ sqlite3 media.db "CREATE TABLE media(name TEXT, bytes INTEGER, duration REAL); INSERT INTO media VALUES('out.mp4', $(stat -c%s out.mp4), $(jq -r .format.duration probe_out.json)); INSERT INTO media VALUES('clip.webm', $(stat -c%s clip.webm), $(jq -r .format.duration probe_out.json));"
-started: 2026-11-01T17:46:57Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 161
+duration_ms: 151
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -139,10 +139,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ sqlite3 media.db "SELECT name, bytes, duration FROM media ORDER BY name;"
-started: 2026-11-01T17:46:57Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 23
+duration_ms: 4
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -153,10 +153,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ git init -q && git config user.email demo@example.com && git config user.name 'Ocbox Demo' && git add -A && git commit -qm 'showcase session work'
-started: 2026-11-01T17:46:57Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 90
+duration_ms: 71
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -167,7 +167,7 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ git log --oneline
-started: 2026-11-01T17:46:57Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
 duration_ms: 4
@@ -176,15 +176,15 @@ stdout_chunks: 1
 stderr_chunks: 1
 stdout_bytes: 30
 stderr_bytes: 0
-stdout_sha256: 4a417c5e110c5e6076df8a4e3ecd2a85342c65222dbb67517374f5ae4f573625
+stdout_sha256: f0ce75cf75a5ae20b9a9c6d64049ab2e80fbfc55ae5afa0e2d6f1e008b6a0ea3
 stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ rg printf hello.c
-started: 2026-11-01T17:46:57Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 12
+duration_ms: 9
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -195,7 +195,7 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ rg zzz_no_match_zzz hello.c
-started: 2026-11-01T17:46:58Z
+started: 2026-11-01T20:39:21Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 1
 duration_ms: 5
@@ -209,10 +209,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ mkdir -p logs && cp probe_out.json logs/ && tar -czf media.tar.gz out.mp4 clip.webm && tar -tzf media.tar.gz
-started: 2026-11-01T17:46:58Z
+started: 2026-11-01T20:39:22Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 76
+duration_ms: 81
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -223,7 +223,7 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ zip -q logs.zip logs/probe_out.json && unzip -l logs.zip
-started: 2026-11-01T17:46:58Z
+started: 2026-11-01T20:39:22Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
 duration_ms: 14
@@ -232,15 +232,15 @@ stdout_chunks: 1
 stderr_chunks: 1
 stdout_bytes: 214
 stderr_bytes: 0
-stdout_sha256: dfa630505576cc3a5b2f985c8540768743912c2bd80c5508ef20fc8fe56c101b
+stdout_sha256: d1495fc053a77bcecc5c7d359fc6846647b0e39008e3716fccf3261002e0cf92
 stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ gcc -O2 -o hello hello.c && ./hello
-started: 2026-11-01T17:46:58Z
+started: 2026-11-01T20:39:22Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 118
+duration_ms: 132
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -251,10 +251,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ node -e "console.log(JSON.stringify({tool: 'node', value: 6 * 7}))"
-started: 2026-11-01T17:46:58Z
+started: 2026-11-01T20:39:22Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 209
+duration_ms: 175
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -265,24 +265,24 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ openssl dgst -sha256 out.mp4 && openssl rand -base64 24
-started: 2026-11-01T17:46:58Z
+started: 2026-11-01T20:39:23Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 16
+duration_ms: 18
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
 stdout_bytes: 117
 stderr_bytes: 0
-stdout_sha256: fa6c5f4a6df8b5c20f78704051c4ad0bbf8fa654c0bc699884fd1e224b6dc644
+stdout_sha256: 3dfd2f3d088f62e6732fc67f684db18cdbed54a9c4a2a80a53b4c88a956d5efa
 stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ python3 -m http.server 18799 --bind 127.0.0.1 >/dev/null 2>&1 & SRV=$!; sleep 1; curl -s http://127.0.0.1:18799/hello.txt; RC=$?; kill $SRV 2>/dev/null; exit $RC
-started: 2026-11-01T17:47:00Z
+started: 2026-11-01T20:39:24Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_1/workspace
 exit: 0
-duration_ms: 1023
+duration_ms: 1041
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -688,20 +688,20 @@ stderr_encoding: text
 }
 clip.webm|287434|6.0
 out.mp4|651291|6.0
-e30e3e6 showcase session work
+bb38003 showcase session work
     printf("hello from C: computed = %d\n", computed);
 out.mp4
 clip.webm
 Archive:  logs.zip
   Length      Date    Time    Name
 ---------  ---------- -----   ----
-     4320  2026-11-01 17:46   logs/probe_out.json
+     4320  2026-11-01 20:39   logs/probe_out.json
 ---------                     -------
      4320                     1 file
 hello from C: computed = 42
 {"tool":"node","value":42}
 SHA2-256(out.mp4)= 56378a82cae8852093f456ebe94fbe37c6949064d2d1c150414fe0ed35a503f5
-FKXvNt1q1l7qlyWAkM58zWwAoMM0h/w2
+o2f1C3hsSX128b1jVG9/jjZHIqvT9ES1
 hello from the showcase workspace
 ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers
   built with gcc 13 (Ubuntu 13.3.0-6ubuntu2~24.04.1)
@@ -723,10 +723,10 @@ Stream mapping:
   Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (libx264))
   Stream #1:0 -> #0:1 (pcm_s16le (native) -> aac (native))
 Press [q] to stop, [?] for help
-[libx264 @ 0x63a4b190c880] using SAR=1/1
-[libx264 @ 0x63a4b190c880] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
-[libx264 @ 0x63a4b190c880] profile High, level 3.0, 4:2:0, 8-bit
-[libx264 @ 0x63a4b190c880] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+[libx264 @ 0x5e7e667af880] using SAR=1/1
+[libx264 @ 0x5e7e667af880] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x5e7e667af880] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0x5e7e667af880] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
 Output #0, mp4, to 'out.mp4':
   Metadata:
     encoder         : Lavf62.12.102
@@ -738,27 +738,27 @@ Output #0, mp4, to 'out.mp4':
   Stream #0:1: Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, mono, fltp, 69 kb/s
     Metadata:
       encoder         : Lavc62.28.102 aac
-frame=   35 fps=0.0 q=29.0 size=       0KiB time=00:00:02.90 bitrate=   0.1kbits/s speed= 5.8x elapsed=0:00:00.50    frame=  107 fps=107 q=29.0 size=     256KiB time=00:00:05.31 bitrate= 394.5kbits/s speed= 5.3x elapsed=0:00:01.00    [out#0/mp4 @ 0x63a4b190bf40] video:577KiB audio:51KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.212453%
-frame=  180 fps=127 q=-1.0 Lsize=     636KiB time=00:00:05.93 bitrate= 878.1kbits/s speed= 4.2x elapsed=0:00:01.41    
-[libx264 @ 0x63a4b190c880] frame I:1     Avg QP:19.47  size:  8203
-[libx264 @ 0x63a4b190c880] frame P:56    Avg QP:25.82  size:  4287
-[libx264 @ 0x63a4b190c880] frame B:123   Avg QP:30.86  size:  2782
-[libx264 @ 0x63a4b190c880] consecutive B-frames:  4.4%  3.3% 30.0% 62.2%
-[libx264 @ 0x63a4b190c880] mb I  I16..4: 37.0% 48.7% 14.3%
-[libx264 @ 0x63a4b190c880] mb P  I16..4:  1.9%  5.1%  0.7%  P16..4: 10.0%  5.8%  3.7%  0.0%  0.0%    skip:72.8%
-[libx264 @ 0x63a4b190c880] mb B  I16..4:  0.3%  0.7%  0.6%  B16..8: 14.4%  4.0%  0.8%  direct: 1.0%  skip:78.2%  L0:51.1% L1:43.8% BI: 5.1%
-[libx264 @ 0x63a4b190c880] 8x8 transform intra:57.8% inter:35.5%
-[libx264 @ 0x63a4b190c880] coded y,uvDC,uvAC intra: 24.2% 32.1% 30.7% inter: 3.1% 7.4% 6.0%
-[libx264 @ 0x63a4b190c880] i16 v,h,dc,p: 79% 17%  4%  0%
-[libx264 @ 0x63a4b190c880] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 11% 11% 72%  2%  1%  1%  1%  1%  1%
-[libx264 @ 0x63a4b190c880] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 17% 16% 33%  9%  4%  4%  6%  6%  5%
-[libx264 @ 0x63a4b190c880] i8c dc,h,v,p: 66% 12% 21%  1%
-[libx264 @ 0x63a4b190c880] Weighted P-Frames: Y:0.0% UV:0.0%
-[libx264 @ 0x63a4b190c880] ref P L0: 55.5%  8.0% 21.9% 14.6%
-[libx264 @ 0x63a4b190c880] ref B L0: 76.4% 18.7%  4.9%
-[libx264 @ 0x63a4b190c880] ref B L1: 94.8%  5.2%
-[libx264 @ 0x63a4b190c880] kb/s:787.35
-[aac @ 0x63a4b1910c40] Qavg: 119.338
+frame=   59 fps=0.0 q=29.0 size=       0KiB time=00:00:03.66 bitrate=   0.1kbits/s speed=7.31x elapsed=0:00:00.50    frame=  120 fps=120 q=29.0 size=     256KiB time=00:00:05.71 bitrate= 367.2kbits/s speed= 5.7x elapsed=0:00:01.00    [out#0/mp4 @ 0x5e7e667aef40] video:577KiB audio:51KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.212453%
+frame=  180 fps=128 q=-1.0 Lsize=     636KiB time=00:00:05.93 bitrate= 878.1kbits/s speed=4.23x elapsed=0:00:01.40    
+[libx264 @ 0x5e7e667af880] frame I:1     Avg QP:19.47  size:  8203
+[libx264 @ 0x5e7e667af880] frame P:56    Avg QP:25.82  size:  4287
+[libx264 @ 0x5e7e667af880] frame B:123   Avg QP:30.86  size:  2782
+[libx264 @ 0x5e7e667af880] consecutive B-frames:  4.4%  3.3% 30.0% 62.2%
+[libx264 @ 0x5e7e667af880] mb I  I16..4: 37.0% 48.7% 14.3%
+[libx264 @ 0x5e7e667af880] mb P  I16..4:  1.9%  5.1%  0.7%  P16..4: 10.0%  5.8%  3.7%  0.0%  0.0%    skip:72.8%
+[libx264 @ 0x5e7e667af880] mb B  I16..4:  0.3%  0.7%  0.6%  B16..8: 14.4%  4.0%  0.8%  direct: 1.0%  skip:78.2%  L0:51.1% L1:43.8% BI: 5.1%
+[libx264 @ 0x5e7e667af880] 8x8 transform intra:57.8% inter:35.5%
+[libx264 @ 0x5e7e667af880] coded y,uvDC,uvAC intra: 24.2% 32.1% 30.7% inter: 3.1% 7.4% 6.0%
+[libx264 @ 0x5e7e667af880] i16 v,h,dc,p: 79% 17%  4%  0%
+[libx264 @ 0x5e7e667af880] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 11% 11% 72%  2%  1%  1%  1%  1%  1%
+[libx264 @ 0x5e7e667af880] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 17% 16% 33%  9%  4%  4%  6%  6%  5%
+[libx264 @ 0x5e7e667af880] i8c dc,h,v,p: 66% 12% 21%  1%
+[libx264 @ 0x5e7e667af880] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0x5e7e667af880] ref P L0: 55.5%  8.0% 21.9% 14.6%
+[libx264 @ 0x5e7e667af880] ref B L0: 76.4% 18.7%  4.9%
+[libx264 @ 0x5e7e667af880] ref B L1: 94.8%  5.2%
+[libx264 @ 0x5e7e667af880] kb/s:787.35
+[aac @ 0x5e7e667b3c40] Qavg: 119.338
 ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers
   built with gcc 13 (Ubuntu 13.3.0-6ubuntu2~24.04.1)
   configuration: --prefix=/usr --extra-version= --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-pocketsphinx --disable-libcaca --disable-libmfx --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-ladspa --enable-libbluray --enable-libdvdnav --enable-libdvdread --enable-libjack --enable-libjxl --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-libplacebo --enable-frei0r --enable-sdl2 --enable-librav1e --enable-librsvg --disable-libplacebo --enable-shared
@@ -787,8 +787,8 @@ Stream mapping:
   Stream #0:0 -> #0:0 (h264 (native) -> vp8 (libvpx))
   Stream #0:1 -> #0:1 (aac (native) -> opus (libopus))
 Press [q] to stop, [?] for help
-[libopus @ 0x5a802f7745c0] No bit rate set. Defaulting to 64000 bps.
-[libvpx @ 0x5a802f77c680] v1.14.0
+[libopus @ 0x5a88fbe385c0] No bit rate set. Defaulting to 64000 bps.
+[libvpx @ 0x5a88fbe40680] v1.14.0
 Output #0, webm, to 'clip.webm':
   Metadata:
     major_brand     : isom
@@ -805,8 +805,8 @@ Output #0, webm, to 'clip.webm':
     Metadata:
       encoder         : Lavc62.28.102 libopus
       handler_name    : SoundHandler
-frame=   30 fps=0.0 q=18.0 size=       1KiB time=00:00:01.00 bitrate=   6.5kbits/s speed=   2x elapsed=0:00:00.50    frame=   60 fps= 60 q=26.0 size=       1KiB time=00:00:02.00 bitrate=   3.3kbits/s speed=   2x elapsed=0:00:01.00    frame=   80 fps= 53 q=23.0 size=       1KiB time=00:00:02.66 bitrate=   2.4kbits/s speed=1.78x elapsed=0:00:01.50    frame=   99 fps= 49 q=23.0 size=       1KiB time=00:00:03.30 bitrate=   2.0kbits/s speed=1.65x elapsed=0:00:02.00    frame=  126 fps= 50 q=24.0 size=       1KiB time=00:00:04.20 bitrate=   1.6kbits/s speed=1.68x elapsed=0:00:02.50    frame=  144 fps= 48 q=26.0 size=     198KiB time=00:00:04.80 bitrate= 337.2kbits/s speed= 1.6x elapsed=0:00:03.00    frame=  165 fps= 47 q=27.0 size=     198KiB time=00:00:05.50 bitrate= 294.3kbits/s speed=1.57x elapsed=0:00:03.50    [out#0/webm @ 0x5a802f77a500] video:221KiB audio:56KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.505092%
-frame=  180 fps= 48 q=26.0 Lsize=     281KiB time=00:00:06.00 bitrate= 383.2kbits/s speed=1.59x elapsed=0:00:03.76    
+frame=   23 fps=0.0 q=23.0 size=       1KiB time=00:00:00.76 bitrate=   8.5kbits/s speed=1.53x elapsed=0:00:00.50    frame=   52 fps= 52 q=24.0 size=       1KiB time=00:00:01.76 bitrate=   3.7kbits/s speed=1.76x elapsed=0:00:01.00    frame=   87 fps= 58 q=22.0 size=       1KiB time=00:00:02.90 bitrate=   2.2kbits/s speed=1.93x elapsed=0:00:01.50    frame=  118 fps= 59 q=29.0 size=       1KiB time=00:00:03.93 bitrate=   1.7kbits/s speed=1.96x elapsed=0:00:02.00    frame=  144 fps= 58 q=26.0 size=     198KiB time=00:00:04.80 bitrate= 337.2kbits/s speed=1.92x elapsed=0:00:02.50    [out#0/webm @ 0x5a88fbe3e500] video:221KiB audio:56KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.505092%
+frame=  180 fps= 62 q=26.0 Lsize=     281KiB time=00:00:06.00 bitrate= 383.2kbits/s speed=2.05x elapsed=0:00:02.92    
 jq: parse error: Invalid numeric literal at line 1, column 5
 --- diff for bad.json ---
 --- /dev/null
@@ -814,13 +814,13 @@ frame=  180 fps= 48 q=26.0 Lsize=     281KiB time=00:00:06.00 bitrate= 383.2kbit
 @@ -0,0 +1 @@
 +{not json--- diff for clip.webm ---
 added (287434 bytes)
-sha256 at stop: a1369e543432b2bbe68624c1b3fe996316a5560b3ac65e3c4faa52a26bf715a7
+sha256 at stop: a6bb1b58e39261063ca11f39ac8cf7a4ff7cc170b028da309ce1320f47a94989
 --- diff for hello ---
 added (15968 bytes)
 sha256 at stop: 42074ff761f5f069da3699393e7a5dcfab2e34458a0368e35fe85b41ed34fd8c
 --- diff for logs.zip ---
 added (1229 bytes)
-sha256 at stop: d539ae7f014fa10b5e6c2506abe7f3b71ee43899aa54d6a493377e76118e515f
+sha256 at stop: 5cd7401ce1da6d1e0ce8f18433e8c466de1cb22459bb689ec30ef4a744b502e6
 --- diff for logs/probe_out.json ---
 --- /dev/null
 +++ b/logs/probe_out.json
@@ -966,7 +966,7 @@ added (8192 bytes)
 sha256 at stop: 5e17efc66806683568518720933ae641f0467bce81e47635cd4739251648203d
 --- diff for media.tar.gz ---
 added (931465 bytes)
-sha256 at stop: 3f532dbf1136875c287c64b32d7c7459db9a713fda0a140a6d8ee180edf59e48
+sha256 at stop: 70a3c143f84b6a539563cc51ec9bf1fec92fbf1815e5486cd562721b5e178eb6
 --- diff for out.mp4 ---
 added (651291 bytes)
 sha256 at stop: 56378a82cae8852093f456ebe94fbe37c6949064d2d1c150414fe0ed35a503f5
@@ -1112,21 +1112,21 @@ sha256 at stop: 56378a82cae8852093f456ebe94fbe37c6949064d2d1c150414fe0ed35a503f5
 +}
 README.md	391	4eaf9b4d932a0c196d94302b9fdedc2ce51a72aa645434226bba9af76f88ad6c
 bad.json	9	92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016
-clip.webm	287434	a1369e543432b2bbe68624c1b3fe996316a5560b3ac65e3c4faa52a26bf715a7
+clip.webm	287434	a6bb1b58e39261063ca11f39ac8cf7a4ff7cc170b028da309ce1320f47a94989
 hello	15968	42074ff761f5f069da3699393e7a5dcfab2e34458a0368e35fe85b41ed34fd8c
 hello.c	199	13aa293a13e94b451bbe63cad8d45b9a99a01d0425e8f260137e0da231a52392
 hello.txt	34	033c81364eeaf7f8b671ea86ace6f6027dde12b6129f52a3f19a9f3ce23a580f
-logs.zip	1229	d539ae7f014fa10b5e6c2506abe7f3b71ee43899aa54d6a493377e76118e515f
+logs.zip	1229	5cd7401ce1da6d1e0ce8f18433e8c466de1cb22459bb689ec30ef4a744b502e6
 logs/probe_out.json	4320	b60ded75429f02dd88caf02d490ae7ceec3c36cc8431c940826b14db9e13c034
 media.db	8192	5e17efc66806683568518720933ae641f0467bce81e47635cd4739251648203d
-media.tar.gz	931465	3f532dbf1136875c287c64b32d7c7459db9a713fda0a140a6d8ee180edf59e48
+media.tar.gz	931465	70a3c143f84b6a539563cc51ec9bf1fec92fbf1815e5486cd562721b5e178eb6
 out.mp4	651291	56378a82cae8852093f456ebe94fbe37c6949064d2d1c150414fe0ed35a503f5
 probe_out.json	4320	b60ded75429f02dd88caf02d490ae7ceec3c36cc8431c940826b14db9e13c034
 git.safe.directory	/home/hatch
 session: s_1
 session_int: 1
 project_int: 2
-stopped: 2026-11-01T17:47:00Z
+stopped: 2026-11-01T20:39:24Z
 final_seq: 20
 max_seq_meta: 1
 max_seq_transcript: 20
@@ -1137,45 +1137,45 @@ max_seq_files: 1
 max_seq_env: 1
 max_seq_checkpoint: 1
 lane_map_coord: 2.1.1/8.1.1/2.1.1
-lane_map_sha256: a9c08ac2ba7a11e6ed49a4dad8ceb696af95ada1dc8e1715b358f1b77d329dfe
+lane_map_sha256: fb2ac7916e9139374d5bacd51d93d24a62d7f82a6b90603c86e4dc6c6cd66821
 lane_map_scrolls: 38
-pre_checkpoint_checksum: d6299e3f8f6570663fb9cc9d5759c24fe9fafc60bc5d499d0dcfa9ee85294988
-delta_sha256: a9c08ac2ba7a11e6ed49a4dad8ceb696af95ada1dc8e1715b358f1b77d329dfe
-2.1.1/1.1.1/1.1.1	dd219572120e8bc58103723bddc6057831b72f3c42b9b6c3e255a47dce20a1e1
-2.1.1/2.1.1/10.1.1	6bb9bbdfefba07710555afb276a872123b0d13d94b225ac0339d66cf568c07d7
-2.1.1/2.1.1/11.1.1	fd2de970b0b9e22e1e50644b36bf38f20a361d4816782323a69f100a752c5409
-2.1.1/2.1.1/12.1.1	423d0b442f13ab29d5777cbf6fe06a86b439305de93c5339d634f1d8fc3bcb05
-2.1.1/2.1.1/13.1.1	473506a0457b1332f9b901de973db0996f9d22cf312663645614eb31918b3d76
-2.1.1/2.1.1/14.1.1	0dada807fe8054ae1115efbf25ed9ab9e2d1abff4f6376324ffc046783c8d9cd
-2.1.1/2.1.1/15.1.1	8b93ef43939598e2856d06b399f9598d29652fbae004e493212feb47e7a7ea21
-2.1.1/2.1.1/16.1.1	53dd4f45ec2e93004ea7f4e954a8682479082ffcd4b0f911c6b0323c14146518
-2.1.1/2.1.1/17.1.1	e15286781a7a4de418f648e97d48fdbfbb04eba66c8778136a8bfcce2b05e0ad
-2.1.1/2.1.1/18.1.1	32614726ab3f6580359ac9e9c00cd90f57b9e0613d380e9174b939932398a086
-2.1.1/2.1.1/19.1.1	d0b0efaefead2e67be9a365d51cbb09191dc7b4dff1e4304708d0040e368c715
-2.1.1/2.1.1/2.1.1	38e961df8e56266061d9010729e12536eb7a1b3ffd0f1ddf75a84049ba873e9e
-2.1.1/2.1.1/20.1.1	46dbee72b6d88995c90ec0c1dd91de2271b99fde9f119429ca8d83e20c2958e2
-2.1.1/2.1.1/3.1.1	dbdfd786dfaa36a0c59b094290c02a51dae519bf029315d1a7519896805376e2
-2.1.1/2.1.1/4.1.1	4241e224ff2aef05fdf3bc7c46459b5ac6c1e4f34c4fe621c1f4e4ca67c2f799
-2.1.1/2.1.1/5.1.1	bf3d0af86ee69e8769f344decab5d1a35aa9fd7d20672b3c736523fde0b3a822
-2.1.1/2.1.1/6.1.1	b332cbcadb0ac5349aac4899663d7798f8ee711b7837c55c346bf6dc8a8c54f7
-2.1.1/2.1.1/7.1.1	b808252b323fd40f9225f46ba94893990dfe079d1507542effff469c97444dd0
-2.1.1/2.1.1/8.1.1	f0d9462915fd14479e79b01fa9de6436755bf2bb6a95857a6d7c2dadb37c8ebd
-2.1.1/2.1.1/9.1.1	e3e6c87d9aa3fc8ebd6e902ec84ebd8c46be8c56eee1927a7e1ff809f65b800d
+pre_checkpoint_checksum: 502d7ae041e88d04d61c9d991e2e00ef16b9a83b5e6c609cd121db0272fc8e25
+delta_sha256: fb2ac7916e9139374d5bacd51d93d24a62d7f82a6b90603c86e4dc6c6cd66821
+2.1.1/1.1.1/1.1.1	b27fdd9eea1fafd2b6e5457f617d5afa44c5aec9e0e66274992a27ef893e44d3
+2.1.1/2.1.1/10.1.1	d08bf36c42f1909408865b0948461992220b0992db98848dd6d14e042e4aae9e
+2.1.1/2.1.1/11.1.1	729fe65187cbef70b380606d618b3b08f1a7d233cfc4b67cad5dcf1d035066b2
+2.1.1/2.1.1/12.1.1	e727c025c21e96ac7b0a433e1ed5cb6101a9561b4edc8c41e76f5f2a6b85c65e
+2.1.1/2.1.1/13.1.1	70207114c2d95c962b0230addb8cab4181c051d175a158b02a4cc595727c3eec
+2.1.1/2.1.1/14.1.1	5444fc10ffaefd3565d5c1063c5e97e354dae86cd259867dd7cabe7326aece85
+2.1.1/2.1.1/15.1.1	be38a050232d9abc4968203ad7440b4ba0d611daa16c8820d9d00e48ffa1dafe
+2.1.1/2.1.1/16.1.1	4b6372c28fc8990b532e29bb515473b3ea5f6b08fbcb3abc8c2f3e3defdbb854
+2.1.1/2.1.1/17.1.1	629cfdd779bb890131bc3fd830351c022d04e9dd3a7a8e04ffe39093a084bb94
+2.1.1/2.1.1/18.1.1	63541f54c4a4fd3c9d07dfa08560a5b58e84a5b8344f97b0c0463d009e62d4ff
+2.1.1/2.1.1/19.1.1	d1b6ac012e6572ac9002448b18695c168feeb2253e3c71303b1e2f82bc8a5158
+2.1.1/2.1.1/2.1.1	21f371b9b09fa443217cc27db2d77764ba9cf96731ef7cbf793a6dd34e158e26
+2.1.1/2.1.1/20.1.1	86b13d3d1a77e15a82fba22e04a28e8f35dcd668ba0649e3d536a2bebbe43d06
+2.1.1/2.1.1/3.1.1	af5aa6c0b3a660db60b917a6125911531e793db127e310af035cb019ad3e67f6
+2.1.1/2.1.1/4.1.1	8c1dfd5273767490ad8f4004b2abb21dc9100c78531d3de46c055e0f29136131
+2.1.1/2.1.1/5.1.1	e81e56dea0889479fe8a1b33757bb99ef0d38a13761fd6207269043270cbae3c
+2.1.1/2.1.1/6.1.1	cf7883a2053e05fc341e59e5c8c8432dc56c0503ea6099b6f073887c39733e4b
+2.1.1/2.1.1/7.1.1	815fa1dfce6f5ca21dc72ea9e05c679decb701bd11355db30dfec201097c482b
+2.1.1/2.1.1/8.1.1	d4a5de6ef50a5a2fd0097b7b90d65fc796224b21b101cd777c3372ea785bf542
+2.1.1/2.1.1/9.1.1	b88981093adfde18e3bb03ea7db8c19f44745708846e757eebb150a1e3b4fda7
 2.1.1/3.1.1/10.1.1	cc0d7ba8e5501d0d62a8500d33fc8f6f6b853042aa97139c05658405968bf677
-2.1.1/3.1.1/12.1.1	4a417c5e110c5e6076df8a4e3ecd2a85342c65222dbb67517374f5ae4f573625
+2.1.1/3.1.1/12.1.1	f0ce75cf75a5ae20b9a9c6d64049ab2e80fbfc55ae5afa0e2d6f1e008b6a0ea3
 2.1.1/3.1.1/13.1.1	caf2cdd41ee9241d0c62271b3f668ccbb471a9d4d201a211d336a4bc733e22d2
 2.1.1/3.1.1/15.1.1	b0c02269ce60096519c28e279927d0e50270964c383c308f5db0bd3efd5c327d
-2.1.1/3.1.1/16.1.1	dfa630505576cc3a5b2f985c8540768743912c2bd80c5508ef20fc8fe56c101b
+2.1.1/3.1.1/16.1.1	d1495fc053a77bcecc5c7d359fc6846647b0e39008e3716fccf3261002e0cf92
 2.1.1/3.1.1/17.1.1	6f267e09ede27a666c63e8aa422857a04f18ab7c1eb58a23ea3a92a23c94c5c8
 2.1.1/3.1.1/18.1.1	c5060f1178a4d4f96111168dd4fdcb2c7d6aee8f4d9633c4c9d40908efb32b1c
-2.1.1/3.1.1/19.1.1	fa6c5f4a6df8b5c20f78704051c4ad0bbf8fa654c0bc699884fd1e224b6dc644
+2.1.1/3.1.1/19.1.1	3dfd2f3d088f62e6732fc67f684db18cdbed54a9c4a2a80a53b4c88a956d5efa
 2.1.1/3.1.1/20.1.1	033c81364eeaf7f8b671ea86ace6f6027dde12b6129f52a3f19a9f3ce23a580f
 2.1.1/3.1.1/3.1.1	b60ded75429f02dd88caf02d490ae7ceec3c36cc8431c940826b14db9e13c034
 2.1.1/3.1.1/6.1.1	01c3325803e125a74bca1100b0856ee63ebda64b64f7a249d243799b9773bdb6
 2.1.1/3.1.1/7.1.1	4a464ef6bdf0c2d7c8813173d68e78a0d3c556b6bb464e4426e2b71152e8f22f
-2.1.1/4.1.1/2.1.1	c095e7b37d3752319478f9f2baf4ed9b632fdec18a8ad33f54232173adf46aa8
-2.1.1/4.1.1/5.1.1	8bd5f48a7725ba08beaa6355ee335f25ab7dc9bda57889851fb49c8ea92f2489
+2.1.1/4.1.1/2.1.1	afd4d33aad061a1fd243ac7b4ab0f8788594c1eb656bdd801c298a69bb9af69b
+2.1.1/4.1.1/5.1.1	20635ae4a6f00c291b2ba62d77d17720d5af725093207f13fa79b4767128e8c6
 2.1.1/4.1.1/8.1.1	a8d415a6c27a4e1d66a6adefbfffac24ed0d4fb605ad543cba4f39e892a9fa35
-2.1.1/5.1.1/1.1.1	5c21f6aaa26ea214a0ba948e7a0fa689934e3cf6243ee910220310f0993e814b
-2.1.1/6.1.1/1.1.1	c02a965226545982e030cc47c4d388b79bfaab6c05659517beeedc4abe57ec2d
+2.1.1/5.1.1/1.1.1	e559049ec2012b8585d73459c822ed93871a32891db1926c599853951f933f80
+2.1.1/6.1.1/1.1.1	e2b520f736f065d51e01e8611861d2a6a4e5921acbd20befc7c036011699e697
 2.1.1/7.1.1/1.1.1	b4ee929f03e5b037cfa851ae331274932df3be8a965dfb768e4667a3340aa6d5

@@ -4,7 +4,7 @@ sample	2
 project_int: 2
 session: s_1
 session_int: 1
-started: 2026-11-01T17:46:35Z
+started: 2026-11-01T20:39:45Z
 provider: local-shim
 workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exec 2: python3 hello.py (exit 0)
@@ -12,10 +12,10 @@ exec 3: python3 -m unittest -v (exit 0)
 exec 4: python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md (exit 0)
 exec 5: python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)" (exit 3)
 $ python3 hello.py
-started: 2026-11-01T17:46:35Z
+started: 2026-11-01T20:39:45Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exit: 0
-duration_ms: 27
+duration_ms: 26
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -26,10 +26,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ python3 -m unittest -v
-started: 2026-11-01T17:46:35Z
+started: 2026-11-01T20:39:45Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exit: 0
-duration_ms: 83
+duration_ms: 79
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -40,10 +40,10 @@ stderr_sha256: afa72c81c4eb4b27bb9de7683d5b8eade4556550f32051cd8c14258abd66eb9b
 stdout_encoding: text
 stderr_encoding: text
 $ python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md
-started: 2026-11-01T17:46:35Z
+started: 2026-11-01T20:39:45Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exit: 0
-duration_ms: 26
+duration_ms: 25
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -54,10 +54,10 @@ stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 stdout_encoding: text
 stderr_encoding: text
 $ python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)"
-started: 2026-11-01T17:46:35Z
+started: 2026-11-01T20:39:45Z
 cwd: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_1/workspace
 exit: 3
-duration_ms: 29
+duration_ms: 25
 timed_out: false
 stdout_chunks: 1
 stderr_chunks: 1
@@ -98,7 +98,7 @@ test_hello.py	298	f4126a242c0382c86b80caccb6afdc383c8be3d3604714aebe861b7cbd91b4
 session: s_1
 session_int: 1
 project_int: 2
-stopped: 2026-11-01T17:46:36Z
+stopped: 2026-11-01T20:39:46Z
 final_seq: 5
 max_seq_meta: 1
 max_seq_transcript: 5
@@ -109,15 +109,15 @@ max_seq_files: 1
 max_seq_env: 1
 max_seq_checkpoint: 1
 lane_map_coord: 2.1.1/8.1.1/2.1.1
-lane_map_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
+lane_map_sha256: 3d0b7ff3575133f79da6800e3f6d0d7b43cf29bd16e00b2cacf7803a142a6c89
 lane_map_scrolls: 11
-pre_checkpoint_checksum: e8e9ac9874d32c9f7b6a871b27752c00bd15d39e489e5a97b725a810787e5bec
-delta_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
-2.1.1/1.1.1/1.1.1	15480ac2bb25655c0b6ba3b497177236a479fa49386de2a846e172c60685a65b
-2.1.1/2.1.1/2.1.1	768ab9ce47417a2460071c6e015e19aaece40e0d5234bfd4a8f5f91c83ce259d
-2.1.1/2.1.1/3.1.1	8458c54a89097e8ab5a1999f1affe4a487217927e330004bfc727730934df50b
-2.1.1/2.1.1/4.1.1	7add11043b7142284c146f6de3d63e8b40e18e399ed204dd0182ee39d9c1b31e
-2.1.1/2.1.1/5.1.1	3d378af905c2b5c9d8f9bddda14a0c88be5a6591f6a1f4dd35b2acf49efecdf2
+pre_checkpoint_checksum: 039e7dd12a7f5dbcf2d956a0220009c2d34bb1e70651f5a611f1601531583688
+delta_sha256: 3d0b7ff3575133f79da6800e3f6d0d7b43cf29bd16e00b2cacf7803a142a6c89
+2.1.1/1.1.1/1.1.1	8ecd0fd3b575e1d7e3b618c09900adc6c4d7f1968aebb859855e73d2e8e43738
+2.1.1/2.1.1/2.1.1	b7fff01fc2768010e8b08628971e391941513a2fe9ce25c1dd327ee79e15148f
+2.1.1/2.1.1/3.1.1	1fe860026bfddae20e81ec3a50590faaff1786f5871ed9160c8408aa2a2bee7b
+2.1.1/2.1.1/4.1.1	4f4763754b9152869439415799cf38acfc9182325e854ad9ba5478d90af13b94
+2.1.1/2.1.1/5.1.1	782523070309e3d76fe5cb911c117ca87ef357097dac3fa8d9ee79f8d2aeab44
 2.1.1/3.1.1/2.1.1	21c7c1c3396e79ce7fecff07052752d1a901700abaf073edec1ca8173a83ec72
 2.1.1/4.1.1/3.1.1	afa72c81c4eb4b27bb9de7683d5b8eade4556550f32051cd8c14258abd66eb9b
 2.1.1/4.1.1/5.1.1	817f9a1133999faf3df75ca394223a57d0d3222105190aabb5a87a4942e4a4ee

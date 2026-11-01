@@ -1,4 +1,4 @@
-=== ocbox x phext MVP demo — 2026-11-01T17:46:24Z ===
+=== ocbox x phext MVP demo — 2026-11-01T20:39:34Z ===
 --- cleaning prior demo state ---
 $ ocbox init
 initialized project 'sample' (.ocbox.json)
@@ -8,9 +8,9 @@ workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/samp
 $ ocbox status
 project: sample
 phext: /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext/sample.phext
-sq daemon: running (Hosting: sample.phext)
+sq daemon: running (pid 20074, recorded)
 active session: s_1
-  s_1 (int 1): active — started 2026-11-01T17:46:35Z, last_seq 1
+  s_1 (int 1): active — started 2026-11-01T20:39:45Z, last_seq 1
 $ ocbox exec python3 hello.py
 hello, world
 hello from the remote session (which is really a local shim)
@@ -59,7 +59,7 @@ Coordinates changed since last context:
 session: s_1
 session_int: 1
 project_int: 2
-stopped: 2026-11-01T17:46:36Z
+stopped: 2026-11-01T20:39:46Z
 final_seq: 5
 max_seq_meta: 1
 max_seq_transcript: 5
@@ -70,10 +70,10 @@ max_seq_files: 1
 max_seq_env: 1
 max_seq_checkpoint: 1
 lane_map_coord: 2.1.1/8.1.1/2.1.1
-lane_map_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
+lane_map_sha256: 3d0b7ff3575133f79da6800e3f6d0d7b43cf29bd16e00b2cacf7803a142a6c89
 lane_map_scrolls: 11
-pre_checkpoint_checksum: e8e9ac9874d32c9f7b6a871b27752c00bd15d39e489e5a97b725a810787e5bec
-delta_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
+pre_checkpoint_checksum: 039e7dd12a7f5dbcf2d956a0220009c2d34bb1e70651f5a611f1601531583688
+delta_sha256: 3d0b7ff3575133f79da6800e3f6d0d7b43cf29bd16e00b2cacf7803a142a6c89
 
 === VERIFICATION (direct SQ reads, independent of the CLI's printouts) ===
 Coordinates found, by class:
@@ -107,7 +107,7 @@ Checkpoint scroll:
   session: s_1
   session_int: 1
   project_int: 2
-  stopped: 2026-11-01T17:46:36Z
+  stopped: 2026-11-01T20:39:46Z
   final_seq: 5
   max_seq_meta: 1
   max_seq_transcript: 5
@@ -118,14 +118,14 @@ Checkpoint scroll:
   max_seq_env: 1
   max_seq_checkpoint: 1
   lane_map_coord: 2.1.1/8.1.1/2.1.1
-  lane_map_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
+  lane_map_sha256: 3d0b7ff3575133f79da6800e3f6d0d7b43cf29bd16e00b2cacf7803a142a6c89
   lane_map_scrolls: 11
-  pre_checkpoint_checksum: e8e9ac9874d32c9f7b6a871b27752c00bd15d39e489e5a97b725a810787e5bec
-  delta_sha256: 6a229406125316af67e14482a45b18cf608039affb79535bddf054f2f7112a84
+  pre_checkpoint_checksum: 039e7dd12a7f5dbcf2d956a0220009c2d34bb1e70651f5a611f1601531583688
+  delta_sha256: 3d0b7ff3575133f79da6800e3f6d0d7b43cf29bd16e00b2cacf7803a142a6c89
 VERIFICATION: PASS — all 8 classes present, registries present, stderr/diff/manifest/checkpoint contents check out
 
 Demo phext: /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext/sample.phext
-SHA-256: b3a33858de76954c15fc5bb6da0eebb339ddf96d04110aa39497b18175cd0245
+SHA-256: 0c907a6351d09eb7e039a4f78bac6f57702683be0024441750d808b35054474e
 Size: 5032 bytes
 --- stopping the demo's sq daemon ---
 sq daemon stopped (sq shutdown)

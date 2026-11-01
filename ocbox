@@ -8,11 +8,18 @@ names and checkpoints are written as phext scrolls via SQ.
 Transport (fix pass, 2026-11-01 — see GAP-ANALYSIS.md "Transport decision"
 addendum): SQ **daemon mode**. The writer runs `sq share <phext>` in the
 store directory and drives it through the sq CLI (`pull`/`push` for
-byte-exact scroll transfer, `insert` for small appends, `toc`, `save`,
-`shutdown`). There is no HTTP host, no port, and no key: the daemon is
+byte-exact scroll transfer, `insert` for small appends, `toc`, `save`).
+There is no HTTP host, no port, and no key: the daemon is
 filesystem-local IPC scoped to the store directory, and `stop` shuts it
 down. `OCBOX_SQ_KEY` is therefore irrelevant locally (kept as a no-op env
 var for callers that still set it).
+
+Daemon lifecycle (Layer 6, POLISH.md): SQ's channel has no timeout and
+no server handshake, and a client started before its daemon can steal
+the shared-memory channel and wait forever — so spawns are gated on the
+daemon's own log proof ("Serving N scrolls") before any client op runs,
+identity is /proc-verified, shutdown is by signal, and read paths
+(`context`) shut the daemon down again unless a session is active.
 
 Stdlib only. State lives in $OCBOX_SHIM_HOME (default ~/.ocbox-shim).
 """
@@ -357,6 +364,166 @@ class LocalProvider:
 
 # ---------------------------------------------------------------- phext writer (SQ daemon mode)
 
+# ------------------------------------------------------- daemon lifecycle
+# SQ daemon-mode facts this code is built on (sq 0.6.0 source +
+# POLISH.md Layer 6 experiments):
+# * The channel is a single-slot shared-memory mailbox addressed by
+#   .sq/link + .sq/work in the daemon's cwd (each file names a random
+#   per-spawn /dev/shm segment). Clients wait with NO timeout and
+#   there is no server-identity handshake.
+# * Segment acquisition is create-or-open: a client — or a `share` —
+#   that runs before the daemon creates the segments can STEAL
+#   ownership and wait forever on an orphan segment (a share that
+#   loses becomes a client and blocks, alive but never serving).
+# * /proc cmdline cannot distinguish a serving daemon from a
+#   share-turned-client zombie; the daemon's own log can (only a real
+#   server prints "Serving N scrolls").
+# * `sq shutdown` does not save; `save` is the only persistence, so
+#   signal-based shutdown after an explicit save is equivalent — and
+#   signals always work, while a client op may hang.
+# Every sq subprocess below is therefore time-bounded, every spawn is
+# readiness-gated on the daemon's log, and every process decision is
+# made from /proc evidence, never from a probe client.
+
+READY_DEADLINE_S = 120
+WARMUP_TIMEOUT_S = 60
+
+
+class _SqTimeout(Exception):
+    def __init__(self, op, timeout):
+        super().__init__(f"sq {op} stalled > {timeout}s")
+        self.op = op
+        self.timeout = timeout
+
+
+def _proc_info(pid):
+    """(cmdline_tokens, cwd, starttime) for pid, or None. starttime
+    (clock ticks since boot, /proc/<pid>/stat field 22) makes a
+    recorded pid reuse-proof."""
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+        tokens = [t.decode("utf-8", "replace")
+                  for t in raw.split(b"\0") if t]
+        cwd = os.readlink(f"/proc/{pid}/cwd")
+        stat = Path(f"/proc/{pid}/stat").read_bytes().decode(
+            "utf-8", "replace")
+        starttime = int(stat.rsplit(")", 1)[1].split()[19])
+    except (OSError, ValueError, IndexError):
+        return None
+    return tokens, cwd, starttime
+
+
+def scan_share_pids(store, phext_name=None):
+    """All `sq share` processes whose cwd is `store` (optionally only
+    those sharing `phext_name`), as [{pid, phext, starttime}]. Pure
+    /proc: starts nothing, so it can never wedge or steal a channel."""
+    out = []
+    store_s = str(store)
+    for entry in Path("/proc").glob("[0-9]*"):
+        info = _proc_info(int(entry.name))
+        if info is None:
+            continue
+        tokens, cwd, starttime = info
+        if cwd != store_s or "share" not in tokens:
+            continue
+        i = tokens.index("share")
+        name = tokens[i + 1] if i + 1 < len(tokens) else ""
+        if phext_name is not None and name != phext_name:
+            continue
+        out.append({"pid": int(entry.name), "phext": name,
+                    "starttime": starttime})
+    return out
+
+
+def _pid_alive(pid, starttime=None):
+    info = _proc_info(pid)
+    if info is None:
+        return False
+    return starttime is None or info[2] == starttime
+
+
+def _terminate_pids(pairs):
+    """SIGTERM (pid, starttime) pairs, wait, SIGKILL survivors, wait
+    until gone. The starttime guard means a recycled pid is never
+    signalled or awaited by mistake. Returns pairs still alive."""
+    pairs = [(p, s) for p, s in pairs if _pid_alive(p, s)]
+    for p, s in pairs:
+        try:
+            os.kill(p, signal.SIGTERM)
+        except OSError:
+            pass
+    deadline = time.time() + 3
+    while time.time() < deadline:
+        pairs = [(p, s) for p, s in pairs if _pid_alive(p, s)]
+        if not pairs:
+            return []
+        time.sleep(0.1)
+    for p, s in pairs:
+        try:
+            os.kill(p, signal.SIGKILL)
+        except OSError:
+            pass
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        pairs = [(p, s) for p, s in pairs if _pid_alive(p, s)]
+        if not pairs:
+            break
+        time.sleep(0.1)
+    return pairs
+
+
+def shutdown_store_daemon(store, phext_name):
+    """Terminate the store's daemon for `phext_name` (signals only,
+    /proc-verified scope) and drop its recorded identity. Starts no
+    process — safe from read paths. Returns the pids terminated."""
+    store = Path(store)
+    found = scan_share_pids(store, phext_name)
+    if found:
+        _terminate_pids([(d["pid"], d["starttime"]) for d in found])
+    (store / "sq-daemon.json").unlink(missing_ok=True)
+    if not scan_share_pids(store):
+        shutil.rmtree(store / ".sq", ignore_errors=True)
+    return [d["pid"] for d in found]
+
+
+def daemon_brief(store, phext_name):
+    """One-line daemon status for status/ls, from /proc + the
+    recorded identity only (no client is started). None when no
+    daemon for this phext is running in the store."""
+    found = scan_share_pids(store, phext_name)
+    if not found:
+        return None
+    d = found[0]
+    rec = ""
+    info_f = Path(store) / "sq-daemon.json"
+    if info_f.exists():
+        try:
+            if json.loads(info_f.read_text()).get("pid") == d["pid"]:
+                rec = ", recorded"
+        except Exception:
+            pass
+    return f"running (pid {d['pid']}{rec})"
+
+
+def store_has_active_session(state, store):
+    """True when any project whose phext store is `store` has an
+    active session — the condition under which a store daemon is
+    legitimately left running by read-path commands."""
+    for root_str, proj in state.data["projects"].items():
+        if not proj.get("active_session"):
+            continue
+        cfg = {}
+        f = Path(root_str) / CONFIG_NAME
+        if f.exists():
+            try:
+                cfg = json.loads(f.read_text())
+            except Exception:
+                cfg = {}
+        if store_dir_for(Path(root_str), cfg) == store:
+            return True
+    return False
+
+
 class PhextWriter:
     """Drives one phext through an SQ daemon scoped to its store dir.
 
@@ -376,107 +543,101 @@ class PhextWriter:
         self.tmpdir = self.store / ".ocbox-tmp"
         self.tmpdir.mkdir(exist_ok=True)
         self._n = 0
+        self._proc = None            # Popen handle of our own spawn
+        self._proc_confirmed = False  # spawn passed the readiness gate
+        self.spawned_fresh = False    # this instance started the daemon
         self._ensure_daemon()
 
     # -- daemon lifecycle ------------------------------------------------
+    # Discipline (Layer 6 diagnosis, POLISH.md): NEVER run a client op
+    # against a fresh spawn until the daemon has proven itself in its
+    # own log ("Serving N scrolls") — a client that runs first can
+    # steal segment ownership and wait forever on an orphan segment
+    # while the daemon serves happily, which the old code then
+    # misdiagnosed as a wedged daemon and "recovered" by killing the
+    # healthy process. Identity is /proc-verified (cmdline + cwd +
+    # start time + recorded shm link name); shutdown is by signal
+    # (SQ's `shutdown` does not save, and its client can hang).
 
-    def _status_name(self, timeout=5):
-        """Name of the phext the in-dir daemon hosts, or None. `sq status`
-        blocks while the daemon loads (and forever when no daemon runs),
-        so it is always called under a timeout; a timeout means 'not
-        (yet) answering', never a hang."""
+    def _log_size(self):
         try:
-            r = subprocess.run([str(sq_binary()), "status"], cwd=self.store,
-                               capture_output=True, timeout=timeout)
-        except (subprocess.TimeoutExpired, OSError):
-            return None
-        if r.returncode != 0:
-            return None
-        lines = r.stdout.decode("utf-8", "replace").splitlines()
-        if lines and lines[0].startswith("Hosting: "):
-            return lines[0][len("Hosting: "):].strip()
-        return None
+            return (self.store / "sq-daemon.log").stat().st_size
+        except OSError:
+            return 0
 
-    def _shutdown_quiet(self):
+    def _wait_ready(self, proc, log_offset):
+        """Proof of service for a fresh spawn, without touching the
+        channel: the daemon's log gains 'Serving' past log_offset and
+        both .sq flink files exist. Only a real server that owns the
+        channel and finished loading prints that line."""
+        log_f = self.store / "sq-daemon.log"
+        deadline = time.time() + READY_DEADLINE_S
+        while time.time() < deadline:
+            if proc.poll() is not None:
+                return False
+            try:
+                with open(log_f, "rb") as f:
+                    f.seek(log_offset)
+                    chunk = f.read()
+            except OSError:
+                chunk = b""
+            if b"Serving " in chunk and \
+                    (self.store / ".sq" / "link").exists() and \
+                    (self.store / ".sq" / "work").exists():
+                return True
+            time.sleep(0.1)
+        return False
+
+    def _record_identity(self, pid):
+        info = _proc_info(pid)
+        link = work = ""
         try:
-            subprocess.run([str(sq_binary()), "shutdown"], cwd=self.store,
-                           capture_output=True, timeout=10)
-        except Exception:
+            link = (self.store / ".sq" / "link").read_text().strip()
+            work = (self.store / ".sq" / "work").read_text().strip()
+        except OSError:
             pass
+        (self.store / "sq-daemon.json").write_text(json.dumps(
+            {"pid": pid, "phext": self.phext_file.name,
+             "started": now_iso(),
+             "starttime": info[2] if info else None,
+             "link": link, "work": work}))
 
-    def _recorded_pid_alive(self):
-        """True when sq-daemon.json names a live process that really is
-        `sq share <this phext>` (verified via /proc cmdline, so a
-        recycled pid never counts)."""
+    def _recorded_daemon_pid(self):
+        """The recorded daemon's pid when /proc proves it is still the
+        same `sq share <this phext>` process in this store: the
+        start-time match defeats pid reuse, the link-name match
+        defeats daemon swaps. None when unproven."""
         info_f = self.store / "sq-daemon.json"
         if not info_f.exists():
-            return False
+            return None
         try:
-            pid = json.loads(info_f.read_text()).get("pid")
+            rec = json.loads(info_f.read_text())
+            pid = rec.get("pid")
         except Exception:
-            return False
+            return None
         if not pid:
-            return False
-        try:
-            os.kill(pid, 0)
-            cmdline = Path(f"/proc/{pid}/cmdline").read_bytes() \
-                .decode("utf-8", "replace")
-        except OSError:
-            return False
-        return "share" in cmdline and self.phext_file.name in cmdline
-
-    def _store_daemon_pids(self):
-        """Pids of `sq share <this phext>` processes whose cwd is THIS
-        store dir (found via /proc, so it works even when sq-daemon.json
-        is gone). Used for wedged-daemon recovery and shutdown cleanup."""
-        pids = []
-        for entry in Path("/proc").glob("[0-9]*"):
+            return None
+        info = _proc_info(pid)
+        if info is None:
+            return None
+        tokens, cwd, starttime = info
+        if cwd != str(self.store) or "share" not in tokens:
+            return None
+        i = tokens.index("share")
+        if i + 1 >= len(tokens) or \
+                tokens[i + 1] != self.phext_file.name:
+            return None
+        if rec.get("starttime") is not None and \
+                rec["starttime"] != starttime:
+            return None
+        if rec.get("link"):
             try:
-                cmdline = (entry / "cmdline").read_bytes() \
-                    .decode("utf-8", "replace")
-                if "share" not in cmdline or \
-                        self.phext_file.name not in cmdline:
-                    continue
-                if os.readlink(entry / "cwd") == str(self.store):
-                    pids.append(int(entry.name))
+                cur = (self.store / ".sq" / "link").read_text().strip()
             except OSError:
-                continue
-        return pids
-
-    def _dir_daemon_pids(self):
-        """Pids of ANY `sq share` process whose cwd is this store dir
-        (any phext — used for shared-store takeover and recovery)."""
-        pids = []
-        for entry in Path("/proc").glob("[0-9]*"):
-            try:
-                cmdline = (entry / "cmdline").read_bytes() \
-                    .decode("utf-8", "replace")
-                if "share" not in cmdline or ".phext" not in cmdline:
-                    continue
-                if os.readlink(entry / "cwd") == str(self.store):
-                    pids.append(int(entry.name))
-            except OSError:
-                continue
-        return pids
-
-    def _recover_wedged(self, dir_wide=False):
-        """Kill this store's wedged daemon(s) and clear stale .sq state.
-        Only ever touches processes verified as `sq share` running in
-        this directory (name-filtered unless dir_wide)."""
-        pids = self._dir_daemon_pids() if dir_wide else \
-            self._store_daemon_pids()
-        if pids:
-            print(f"ocbox: recovering wedged sq daemon in {self.store} "
-                  f"(killing pid(s) {pids}, clearing stale .sq)",
-                  file=sys.stderr)
-            for pid in pids:
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                except OSError:
-                    pass
-            time.sleep(1)
-        shutil.rmtree(self.store / ".sq", ignore_errors=True)
-        (self.store / "sq-daemon.json").unlink(missing_ok=True)
+                return None
+            if cur != rec["link"]:
+                return None
+        return pid
 
     def _run(self, args, timeout):
         """One sq CLI call; None on timeout (never raises SystemExit)."""
@@ -488,26 +649,86 @@ class PhextWriter:
             return None
 
     def _warmup_ok(self):
-        """One real op with a long fuse as the liveness proof. Probe
-        clients killed by short timeouts can leave the daemon's shared
-        channel wedged, so liveness is established with a SINGLE call
-        that rides out a full phext load instead of a loop of probes."""
-        r = self._run(["toc"], timeout=60)
-        return r is not None and r.returncode == 0
+        """One real op against a daemon believed to be serving. The
+        payload shape is checked because SQ clients can print an
+        error and still exit 0 (observed: `Error: MapOpenFailed(2)`):
+        healthy means a real toc listing came back."""
+        r = self._run(["toc"], timeout=WARMUP_TIMEOUT_S)
+        return r is not None and r.returncode == 0 and \
+            r.stdout.startswith(b"* ")
 
     def _spawn_and_confirm(self, sq):
+        """Start the daemon and gate on its proof of service BEFORE
+        any client op (see _wait_ready), then confirm with one
+        content-checked warm-up. Identity is recorded only after
+        confirmation, so sq-daemon.json never vouches for an
+        unproven process."""
+        offset = self._log_size()
         log = open(self.store / "sq-daemon.log", "ab")
-        proc = subprocess.Popen(
-            [str(sq), "share", self.phext_file.name], cwd=self.store,
-            stdout=log, stderr=log, stdin=subprocess.DEVNULL,
-            start_new_session=True)
-        (self.store / "sq-daemon.json").write_text(json.dumps(
-            {"pid": proc.pid, "phext": self.phext_file.name,
-             "started": now_iso()}))
+        try:
+            proc = subprocess.Popen(
+                [str(sq), "share", self.phext_file.name], cwd=self.store,
+                stdout=log, stderr=log, stdin=subprocess.DEVNULL,
+                start_new_session=True)
+        finally:
+            log.close()
+        self._proc = proc
+        self._proc_confirmed = False
         if proc.poll() is not None:
-            die(f"sq daemon exited during startup "
-                f"(see {self.store}/sq-daemon.log)")
-        return self._warmup_ok()
+            return False
+        if not self._wait_ready(proc, offset):
+            return False
+        if not self._warmup_ok():
+            return False
+        self._record_identity(proc.pid)
+        self._proc_confirmed = True
+        self.spawned_fresh = True
+        return True
+
+    def _recover_wedged(self, dir_wide=False):
+        """Kill this store's daemon(s) and clear stale channel state.
+        Scope is /proc-verified: `sq share` processes whose cwd is
+        this store (name-filtered unless dir_wide). Used only after a
+        daemon has been PROVEN unresponsive (a gated spawn that never
+        served, or a warm-up/op stall against a serving daemon) —
+        never as a guess about a slow starter."""
+        found = scan_share_pids(
+            self.store, None if dir_wide else self.phext_file.name)
+        pairs = [(d["pid"], d["starttime"]) for d in found]
+        if pairs:
+            print(f"ocbox: recovering wedged sq daemon in {self.store} "
+                  f"(killing pid(s) {[p for p, _ in pairs]}, clearing "
+                  f"stale .sq)", file=sys.stderr)
+            _terminate_pids(pairs)
+        shutil.rmtree(self.store / ".sq", ignore_errors=True)
+        (self.store / "sq-daemon.json").unlink(missing_ok=True)
+
+    def _kill_unconfirmed_spawn(self):
+        """Failure-path hygiene: a spawn this process started but
+        never confirmed must not outlive the failure (the Layer 6
+        leak: healthy daemons orphaned in teleport scratch dirs)."""
+        proc = self._proc
+        if proc is not None and not self._proc_confirmed and \
+                proc.poll() is None:
+            try:
+                proc.kill()
+                proc.wait(timeout=5)
+            except Exception:
+                pass
+        if not self._proc_confirmed:
+            shutil.rmtree(self.store / ".sq", ignore_errors=True)
+            (self.store / "sq-daemon.json").unlink(missing_ok=True)
+
+    def _recover_and_respawn(self):
+        """The one recovery path for a stalled op: kill the store's
+        verified daemon(s), clear the channel, respawn behind the
+        readiness gate. Whatever the dead daemon held only in memory
+        is lost; command-level saves mean that is at most the
+        in-flight op."""
+        self._recover_wedged()
+        if not self._spawn_and_confirm(sq_binary()):
+            die(f"sq daemon for {self.phext_file.name} in {self.store} "
+                f"did not recover (see sq-daemon.log)")
 
     def _ensure_daemon(self):
         sq = sq_binary()
@@ -516,122 +737,110 @@ class PhextWriter:
                 f"(`cargo install sq`) or set SQ_BIN. Nothing was created.")
         if not self.phext_file.exists():
             self.phext_file.write_bytes(b"")
-        # Serialize startup per store dir. Daemon existence is decided
-        # via /proc; liveness via ONE long-fused warm-up op. (Short-
-        # timeout `sq status` probes are not free: each killed probe
-        # client can wedge the daemon it was asking about — observed
-        # live, repeatedly, under load.)
+        # Serialize startup per store dir.
         lockf = open(self.store / "sq-daemon.lock", "a+")
         fcntl.flock(lockf.fileno(), fcntl.LOCK_EX)
         try:
-            if self._recorded_pid_alive() or self._store_daemon_pids():
+            pid = self._recorded_daemon_pid()
+            cands = [pid] if pid else [d["pid"] for d in
+                    scan_share_pids(self.store, self.phext_file.name)]
+            if len(cands) == 1:
                 if self._warmup_ok():
+                    if not pid:
+                        self._record_identity(cands[0])
                     return
+                # Proven unresponsive: it was believed serving and a
+                # content-checked toc stalled or failed.
                 self._recover_wedged()
-            elif self._dir_daemon_pids():
-                # A daemon for a DIFFERENT phext holds this dir's slot
-                # (shared multi-project store). Confirm via one patient
-                # status, then take the slot over (its owner restarts
-                # its own daemon on demand; files are never touched) —
-                # or recover it if it is wedged.
-                hosting = self._status_name(timeout=20)
-                if hosting == self.phext_file.name:
-                    if self._warmup_ok():
-                        return
-                    self._recover_wedged()
-                elif hosting is not None:
-                    self._shutdown_quiet()
-                else:
-                    self._recover_wedged(dir_wide=True)
-            # Settle: no daemon process for this dir may be alive (even
-            # mid-exit) when the new one starts.
+            elif len(cands) > 1:
+                # Twin daemons on one file hold divergent memory and
+                # the channel reaches at most one of them. Start clean.
+                self._recover_wedged()
+            else:
+                others = scan_share_pids(self.store)
+                if others:
+                    # A daemon for a DIFFERENT phext holds this
+                    # (shared) store's single channel slot. Take the
+                    # slot by signal (verified scope only; files are
+                    # never touched — its owner respawns on demand).
+                    print(f"ocbox: store {self.store} is served by a "
+                          f"daemon for {others[0]['phext']}; taking "
+                          f"over the slot for {self.phext_file.name}",
+                          file=sys.stderr)
+                    _terminate_pids([(d["pid"], d["starttime"])
+                                     for d in others])
+                    shutil.rmtree(self.store / ".sq",
+                                  ignore_errors=True)
+                    (self.store / "sq-daemon.json").unlink(
+                        missing_ok=True)
+            # Settle: no process for this dir may be mid-exit when the
+            # new daemon starts (its startup deletes .sq under it).
             settle_deadline = time.time() + 10
-            while self._dir_daemon_pids() and \
+            while scan_share_pids(self.store) and \
                     time.time() < settle_deadline:
                 time.sleep(0.2)
-            if self._dir_daemon_pids():
+            if scan_share_pids(self.store):
                 self._recover_wedged(dir_wide=True)
             shutil.rmtree(self.store / ".sq", ignore_errors=True)
-            if self._spawn_and_confirm(sq):
-                return
-            # One full retry after a recovery cycle, then give up loudly.
-            self._recover_wedged()
-            if self._spawn_and_confirm(sq):
-                return
-            die(f"sq daemon did not come up for {self.phext_file.name} "
-                f"in {self.store} (see sq-daemon.log)")
+            ok = False
+            try:
+                ok = self._spawn_and_confirm(sq)
+                if not ok:
+                    self._recover_wedged()
+                    ok = self._spawn_and_confirm(sq)
+            finally:
+                if not ok:
+                    self._kill_unconfirmed_spawn()
+            if not ok:
+                die(f"sq daemon did not come up for "
+                    f"{self.phext_file.name} in {self.store} "
+                    f"(see sq-daemon.log)")
         finally:
             lockf.close()
 
     def shutdown(self):
-        """Stop the store's daemon (clean `sq shutdown`, SIGTERM only to
-        a recorded pid verified as our `sq share` process)."""
-        self._shutdown_quiet()
-        info_f = self.store / "sq-daemon.json"
-        pid = None
-        if info_f.exists():
-            try:
-                pid = json.loads(info_f.read_text()).get("pid")
-            except Exception:
-                pid = None
-        if pid:
-            alive = True
-            for _ in range(30):
-                try:
-                    os.kill(pid, 0)
-                except OSError:
-                    alive = False
-                    break
-                time.sleep(0.1)
-            if alive:
-                try:
-                    cmdline = Path(f"/proc/{pid}/cmdline").read_bytes() \
-                        .decode("utf-8", "replace")
-                except OSError:
-                    cmdline = ""
-                if "share" in cmdline and self.phext_file.name in cmdline:
-                    try:
-                        os.kill(pid, signal.SIGTERM)
-                    except OSError:
-                        pass
-        # Belt-and-braces: any verified store daemon still alive after
-        # the clean shutdown gets a SIGTERM (same /proc verification),
-        # and we wait for it to actually die — a daemon still exiting
-        # can wedge the next spawn on this store.
-        for leftover in self._store_daemon_pids():
-            try:
-                os.kill(leftover, signal.SIGTERM)
-            except OSError:
-                pass
-        for _ in range(50):
-            if not self._store_daemon_pids():
-                break
-            time.sleep(0.1)
-        # A daemon that ignored SIGTERM (wedged channel) is SIGKILLed —
-        # verified store scope only — so `stop` really stops it.
-        for stubborn in self._store_daemon_pids():
-            try:
-                os.kill(stubborn, signal.SIGKILL)
-            except OSError:
-                pass
-        info_f.unlink(missing_ok=True)
+        """Stop the store's daemon for this phext. Signals to
+        /proc-verified pids only: SQ's `shutdown` command does not
+        save (callers save first) and its client can hang forever on
+        a wedged channel. Safe on a store with no daemon."""
+        shutdown_store_daemon(self.store, self.phext_file.name)
 
     # -- scroll ops --------------------------------------------------------
 
-    def _cli(self, args, timeout=30):
+    def _cli_once(self, args, timeout):
         try:
-            r = subprocess.run([str(sq_binary()), *args], cwd=self.store,
-                               capture_output=True, timeout=timeout)
+            r = subprocess.run([str(sq_binary()), *args],
+                               cwd=self.store, capture_output=True,
+                               timeout=timeout)
         except subprocess.TimeoutExpired:
-            die(f"SQ daemon did not answer `{args[0]}` within {timeout}s "
-                f"(store {self.store}) — the daemon may be wedged; this "
-                f"call wrote nothing.")
+            raise _SqTimeout(args[0], timeout)
+        except OSError as e:
+            die(f"SQ `{args[0]}` could not start: {e}")
         if r.returncode != 0:
             msg = (r.stderr or r.stdout).decode("utf-8", "replace") \
                 .strip()[:300]
             die(f"SQ `{args[0]}` failed (exit {r.returncode}): {msg}")
         return r
 
+    def _cli(self, args, timeout=30):
+        """One sq op, always time-bounded. On a stall: ONE
+        store-scoped recovery + respawn (the only retry path), ONE
+        retry, then a loud death — no silent wedges, no blind retry
+        loops. Used for reads and absolute writes (pull/toc/push/
+        save), which are safe to repeat verbatim; `insert` appends
+        and therefore verifies before any retry (see insert())."""
+        try:
+            return self._cli_once(args, timeout)
+        except _SqTimeout:
+            pass
+        self._recover_and_respawn()
+        try:
+            return self._cli_once(args, timeout)
+        except _SqTimeout:
+            die(f"SQ daemon did not answer `{args[0]}` within "
+                f"{timeout}s even after a daemon restart (store "
+                f"{self.store}) — giving up loudly; the operation "
+                f"was retried exactly once.")
     def _tmp(self):
         self._n += 1
         return self.tmpdir / f"op-{os.getpid()}-{self._n}.tmp"
@@ -656,15 +865,33 @@ class PhextWriter:
 
     def insert(self, c, text):
         data = text.encode("utf-8")
-        if len(data) <= CHUNK:
-            self._cli(["insert", c, text])
-        else:
+        if len(data) > CHUNK:
             f = self._tmp()
             f.write_bytes(self._pull_bytes(c) + data)
             try:
                 self._cli(["push", c, str(f)])
             finally:
                 f.unlink(missing_ok=True)
+            return
+        try:
+            self._cli_once(["insert", c, text], timeout=30)
+            return
+        except _SqTimeout:
+            pass
+        # Ambiguous stall: the append may have landed before the
+        # channel stalled, and an append must never be applied twice.
+        # _pull_bytes goes through _cli (one recovery + respawn + one
+        # retry), so when it answers, the channel is healthy again;
+        # only retry the append when it verifiably did not land.
+        if self._pull_bytes(c).endswith(data):
+            return
+        try:
+            self._cli_once(["insert", c, text], timeout=30)
+        except _SqTimeout:
+            die(f"SQ `insert` stalled twice for {c} (store "
+                f"{self.store}) — the append was verified absent "
+                f"before the single retry; aborting with state "
+                f"consistent.")
 
     def toc(self):
         return self._cli(["toc"], timeout=60).stdout.decode("utf-8",
@@ -1299,6 +1526,7 @@ def cmd_context(argv):
         else:
             die(f"context: unknown argument {a!r}")
     root, cfg = find_project_root()
+    state = State()
     w = writer_for(root, cfg)
     w.save()  # flush any adopted daemon state: the file hash must be honest
     store = store_dir_for(root, cfg)
@@ -1375,6 +1603,11 @@ def cmd_context(argv):
         print("=== last checkpoint ===")
         text = w.select(last)
         sys.stdout.write(text if text.endswith("\n") else text + "\n")
+    # Daemon hygiene (Layer 6): a read path must not leave a daemon
+    # running behind it. The daemon stays only while a session is
+    # active in this store — `ocbox status`/`ls` report it then.
+    if not store_has_active_session(state, store):
+        w.shutdown()
     return 0
 
 
@@ -1470,11 +1703,17 @@ def cmd_teleport_in(argv):
     shutil.rmtree(vdir, ignore_errors=True)
     vdir.mkdir(parents=True)
     shutil.copy2(src, vdir / "incoming.phext")
-    vw = PhextWriter(vdir, "incoming")
+    vw = None
     try:
+        # Construction is inside the try: a writer that fails to come
+        # up must still leave nothing behind (the Layer 6 scratch-dir
+        # leak). _ensure_daemon already kills its own unconfirmed
+        # spawn; this finally covers the scratch dir itself.
+        vw = PhextWriter(vdir, "incoming")
         export = vw.export_exact_bytes()
     finally:
-        vw.shutdown()
+        if vw is not None:
+            vw.shutdown()
         shutil.rmtree(vdir, ignore_errors=True)
     proj_reg = parse_tsv(export.get(REG_PROJ_COORD, b"").decode(
         "utf-8", "replace"))
@@ -1558,6 +1797,15 @@ def cmd_teleport_in(argv):
     replaced = dest.exists() and src.resolve() != dest.resolve()
     if src.resolve() != dest.resolve():
         shutil.copy2(src, dest)
+    if adopted:
+        # Adoption must be total: every command derives the phext
+        # filename from .ocbox.json's "project", so renaming only in
+        # shim state left context/start/exec addressing a fresh empty
+        # <oldname>.phext while the teleported phext sat untouched
+        # (Layer 7 find — the "detector missed everything" artifact).
+        cfg["project"] = reg_name
+        (root / CONFIG_NAME).write_text(json.dumps(cfg, indent=2)
+                                        + "\n")
     state = State()
     proj = state.get_project(str(root), reg_name)
     proj["name"] = reg_name
@@ -1665,18 +1913,11 @@ def cmd_status(argv):
     store = store_dir_for(root, cfg)
     print(f"project: {cfg['project']}")
     print(f"phext: {store / (safe_phext_name(cfg['project']) + '.phext')}")
-    daemon = "not running"
-    if store.exists():
-        try:
-            r = subprocess.run([str(sq_binary()), "status"], cwd=store,
-                               capture_output=True, timeout=2)
-            lines = r.stdout.decode("utf-8", "replace").splitlines()
-            if r.returncode == 0 and lines and \
-                    lines[0].startswith("Hosting: "):
-                daemon = f"running ({lines[0]})"
-        except (subprocess.TimeoutExpired, OSError):
-            daemon = "not answering (wedged or starting)"
-    print(f"sq daemon: {daemon}")
+    # /proc evidence only: a probe client here could block forever or
+    # steal a starting daemon's channel (Layer 6).
+    brief = daemon_brief(store, safe_phext_name(cfg["project"])
+                         + ".phext") if store.exists() else None
+    print(f"sq daemon: {brief or 'not running'}")
     if not proj or not proj["sessions"]:
         print("sessions: none")
         return 0
@@ -1703,6 +1944,17 @@ def cmd_ls(argv):
             s = proj["sessions"][sid]
             mark = " *" if proj.get("active_session") == sid else ""
             print(f"  {sid}: {s['status']}{mark}")
+        cfg = {}
+        cf = Path(root) / CONFIG_NAME
+        if cf.exists():
+            try:
+                cfg = json.loads(cf.read_text())
+            except Exception:
+                cfg = {}
+        brief = daemon_brief(store_dir_for(Path(root), cfg),
+                             safe_phext_name(proj["name"]) + ".phext")
+        if brief:
+            print(f"  sq daemon: {brief}")
     return 0
 
 
@@ -1731,8 +1983,11 @@ def cmd_destroy(argv):
     if proj.get("active_session") == sess["id"]:
         proj["active_session"] = None
     state.save()
-    if w is not None:
-        w.shutdown()
+    # Same hygiene as context: no active session left in the store,
+    # no daemon left running.
+    if not store_has_active_session(state, store_dir_for(root, cfg)):
+        shutdown_store_daemon(store_dir_for(root, cfg),
+                              safe_phext_name(cfg["project"]) + ".phext")
     print(f"session {sess['id']} destroyed")
     return 0
 
@@ -1751,7 +2006,9 @@ usage:
   ocbox context [--lane <class|n>] [--session <int>] [--full]
                                   resume briefing: toc summary (or scoped/
                                   full listing), coordinates changed since
-                                  the last context, latest checkpoint
+                                  the last context, latest checkpoint;
+                                  shuts the store daemon down again unless
+                                  a session is active in the store
   ocbox stop                      capture diff+manifest+checkpoint, close the
                                   session, shut down the store's SQ daemon
   ocbox destroy [--force]         delete the session workspace (active

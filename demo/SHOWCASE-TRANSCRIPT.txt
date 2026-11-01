@@ -1,4 +1,4 @@
-=== ocbox x phext SHOWCASE (real tools + ffmpeg) — 2026-11-01T17:46:39Z ===
+=== ocbox x phext SHOWCASE (real tools + ffmpeg) — 2026-11-01T20:39:04Z ===
 --- cleaning prior showcase state ---
 $ ocbox start
 session s_1 started — project showcase (int 2)
@@ -27,10 +27,10 @@ Stream mapping:
   Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (libx264))
   Stream #1:0 -> #0:1 (pcm_s16le (native) -> aac (native))
 Press [q] to stop, [?] for help
-[libx264 @ 0x63a4b190c880] using SAR=1/1
-[libx264 @ 0x63a4b190c880] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
-[libx264 @ 0x63a4b190c880] profile High, level 3.0, 4:2:0, 8-bit
-[libx264 @ 0x63a4b190c880] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+[libx264 @ 0x5e7e667af880] using SAR=1/1
+[libx264 @ 0x5e7e667af880] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x5e7e667af880] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0x5e7e667af880] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
 Output #0, mp4, to 'out.mp4':
   Metadata:
     encoder         : Lavf62.12.102
@@ -42,27 +42,27 @@ Output #0, mp4, to 'out.mp4':
   Stream #0:1: Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, mono, fltp, 69 kb/s
     Metadata:
       encoder         : Lavc62.28.102 aac
-frame=   35 fps=0.0 q=29.0 size=       0KiB time=00:00:02.90 bitrate=   0.1kbits/s speed= 5.8x elapsed=0:00:00.50    frame=  107 fps=107 q=29.0 size=     256KiB time=00:00:05.31 bitrate= 394.5kbits/s speed= 5.3x elapsed=0:00:01.00    [out#0/mp4 @ 0x63a4b190bf40] video:577KiB audio:51KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.212453%
-frame=  180 fps=127 q=-1.0 Lsize=     636KiB time=00:00:05.93 bitrate= 878.1kbits/s speed= 4.2x elapsed=0:00:01.41    
-[libx264 @ 0x63a4b190c880] frame I:1     Avg QP:19.47  size:  8203
-[libx264 @ 0x63a4b190c880] frame P:56    Avg QP:25.82  size:  4287
-[libx264 @ 0x63a4b190c880] frame B:123   Avg QP:30.86  size:  2782
-[libx264 @ 0x63a4b190c880] consecutive B-frames:  4.4%  3.3% 30.0% 62.2%
-[libx264 @ 0x63a4b190c880] mb I  I16..4: 37.0% 48.7% 14.3%
-[libx264 @ 0x63a4b190c880] mb P  I16..4:  1.9%  5.1%  0.7%  P16..4: 10.0%  5.8%  3.7%  0.0%  0.0%    skip:72.8%
-[libx264 @ 0x63a4b190c880] mb B  I16..4:  0.3%  0.7%  0.6%  B16..8: 14.4%  4.0%  0.8%  direct: 1.0%  skip:78.2%  L0:51.1% L1:43.8% BI: 5.1%
-[libx264 @ 0x63a4b190c880] 8x8 transform intra:57.8% inter:35.5%
-[libx264 @ 0x63a4b190c880] coded y,uvDC,uvAC intra: 24.2% 32.1% 30.7% inter: 3.1% 7.4% 6.0%
-[libx264 @ 0x63a4b190c880] i16 v,h,dc,p: 79% 17%  4%  0%
-[libx264 @ 0x63a4b190c880] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 11% 11% 72%  2%  1%  1%  1%  1%  1%
-[libx264 @ 0x63a4b190c880] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 17% 16% 33%  9%  4%  4%  6%  6%  5%
-[libx264 @ 0x63a4b190c880] i8c dc,h,v,p: 66% 12% 21%  1%
-[libx264 @ 0x63a4b190c880] Weighted P-Frames: Y:0.0% UV:0.0%
-[libx264 @ 0x63a4b190c880] ref P L0: 55.5%  8.0% 21.9% 14.6%
-[libx264 @ 0x63a4b190c880] ref B L0: 76.4% 18.7%  4.9%
-[libx264 @ 0x63a4b190c880] ref B L1: 94.8%  5.2%
-[libx264 @ 0x63a4b190c880] kb/s:787.35
-[aac @ 0x63a4b1910c40] Qavg: 119.338
+frame=   59 fps=0.0 q=29.0 size=       0KiB time=00:00:03.66 bitrate=   0.1kbits/s speed=7.31x elapsed=0:00:00.50    frame=  120 fps=120 q=29.0 size=     256KiB time=00:00:05.71 bitrate= 367.2kbits/s speed= 5.7x elapsed=0:00:01.00    [out#0/mp4 @ 0x5e7e667aef40] video:577KiB audio:51KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.212453%
+frame=  180 fps=128 q=-1.0 Lsize=     636KiB time=00:00:05.93 bitrate= 878.1kbits/s speed=4.23x elapsed=0:00:01.40    
+[libx264 @ 0x5e7e667af880] frame I:1     Avg QP:19.47  size:  8203
+[libx264 @ 0x5e7e667af880] frame P:56    Avg QP:25.82  size:  4287
+[libx264 @ 0x5e7e667af880] frame B:123   Avg QP:30.86  size:  2782
+[libx264 @ 0x5e7e667af880] consecutive B-frames:  4.4%  3.3% 30.0% 62.2%
+[libx264 @ 0x5e7e667af880] mb I  I16..4: 37.0% 48.7% 14.3%
+[libx264 @ 0x5e7e667af880] mb P  I16..4:  1.9%  5.1%  0.7%  P16..4: 10.0%  5.8%  3.7%  0.0%  0.0%    skip:72.8%
+[libx264 @ 0x5e7e667af880] mb B  I16..4:  0.3%  0.7%  0.6%  B16..8: 14.4%  4.0%  0.8%  direct: 1.0%  skip:78.2%  L0:51.1% L1:43.8% BI: 5.1%
+[libx264 @ 0x5e7e667af880] 8x8 transform intra:57.8% inter:35.5%
+[libx264 @ 0x5e7e667af880] coded y,uvDC,uvAC intra: 24.2% 32.1% 30.7% inter: 3.1% 7.4% 6.0%
+[libx264 @ 0x5e7e667af880] i16 v,h,dc,p: 79% 17%  4%  0%
+[libx264 @ 0x5e7e667af880] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 11% 11% 72%  2%  1%  1%  1%  1%  1%
+[libx264 @ 0x5e7e667af880] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 17% 16% 33%  9%  4%  4%  6%  6%  5%
+[libx264 @ 0x5e7e667af880] i8c dc,h,v,p: 66% 12% 21%  1%
+[libx264 @ 0x5e7e667af880] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0x5e7e667af880] ref P L0: 55.5%  8.0% 21.9% 14.6%
+[libx264 @ 0x5e7e667af880] ref B L0: 76.4% 18.7%  4.9%
+[libx264 @ 0x5e7e667af880] ref B L1: 94.8%  5.2%
+[libx264 @ 0x5e7e667af880] kb/s:787.35
+[aac @ 0x5e7e667b3c40] Qavg: 119.338
 (ocbox exit: 0)
 --- ffprobe: JSON to stdout ---
 $ ocbox exec ffprobe -v error -show_format -show_streams -of json out.mp4
@@ -236,8 +236,8 @@ Stream mapping:
   Stream #0:0 -> #0:0 (h264 (native) -> vp8 (libvpx))
   Stream #0:1 -> #0:1 (aac (native) -> opus (libopus))
 Press [q] to stop, [?] for help
-[libopus @ 0x5a802f7745c0] No bit rate set. Defaulting to 64000 bps.
-[libvpx @ 0x5a802f77c680] v1.14.0
+[libopus @ 0x5a88fbe385c0] No bit rate set. Defaulting to 64000 bps.
+[libvpx @ 0x5a88fbe40680] v1.14.0
 Output #0, webm, to 'clip.webm':
   Metadata:
     major_brand     : isom
@@ -254,8 +254,8 @@ Output #0, webm, to 'clip.webm':
     Metadata:
       encoder         : Lavc62.28.102 libopus
       handler_name    : SoundHandler
-frame=   30 fps=0.0 q=18.0 size=       1KiB time=00:00:01.00 bitrate=   6.5kbits/s speed=   2x elapsed=0:00:00.50    frame=   60 fps= 60 q=26.0 size=       1KiB time=00:00:02.00 bitrate=   3.3kbits/s speed=   2x elapsed=0:00:01.00    frame=   80 fps= 53 q=23.0 size=       1KiB time=00:00:02.66 bitrate=   2.4kbits/s speed=1.78x elapsed=0:00:01.50    frame=   99 fps= 49 q=23.0 size=       1KiB time=00:00:03.30 bitrate=   2.0kbits/s speed=1.65x elapsed=0:00:02.00    frame=  126 fps= 50 q=24.0 size=       1KiB time=00:00:04.20 bitrate=   1.6kbits/s speed=1.68x elapsed=0:00:02.50    frame=  144 fps= 48 q=26.0 size=     198KiB time=00:00:04.80 bitrate= 337.2kbits/s speed= 1.6x elapsed=0:00:03.00    frame=  165 fps= 47 q=27.0 size=     198KiB time=00:00:05.50 bitrate= 294.3kbits/s speed=1.57x elapsed=0:00:03.50    [out#0/webm @ 0x5a802f77a500] video:221KiB audio:56KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.505092%
-frame=  180 fps= 48 q=26.0 Lsize=     281KiB time=00:00:06.00 bitrate= 383.2kbits/s speed=1.59x elapsed=0:00:03.76    
+frame=   23 fps=0.0 q=23.0 size=       1KiB time=00:00:00.76 bitrate=   8.5kbits/s speed=1.53x elapsed=0:00:00.50    frame=   52 fps= 52 q=24.0 size=       1KiB time=00:00:01.76 bitrate=   3.7kbits/s speed=1.76x elapsed=0:00:01.00    frame=   87 fps= 58 q=22.0 size=       1KiB time=00:00:02.90 bitrate=   2.2kbits/s speed=1.93x elapsed=0:00:01.50    frame=  118 fps= 59 q=29.0 size=       1KiB time=00:00:03.93 bitrate=   1.7kbits/s speed=1.96x elapsed=0:00:02.00    frame=  144 fps= 58 q=26.0 size=     198KiB time=00:00:04.80 bitrate= 337.2kbits/s speed=1.92x elapsed=0:00:02.50    [out#0/webm @ 0x5a88fbe3e500] video:221KiB audio:56KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.505092%
+frame=  180 fps= 62 q=26.0 Lsize=     281KiB time=00:00:06.00 bitrate= 383.2kbits/s speed=2.05x elapsed=0:00:02.92    
 (ocbox exit: 0)
 --- ffprobe: WebM JSON to stdout ---
 $ ocbox exec ffprobe -v error -show_format -show_streams -of json clip.webm
@@ -538,7 +538,7 @@ $ ocbox exec git init -q && git config user.email demo@example.com && git config
 (ocbox exit: 0)
 --- git: log as a later exec ---
 $ ocbox exec git log --oneline
-e30e3e6 showcase session work
+bb38003 showcase session work
 (ocbox exit: 0)
 --- rg: match (exit 0) ---
 $ ocbox exec rg printf hello.c
@@ -557,7 +557,7 @@ $ ocbox exec zip -q logs.zip logs/probe_out.json && unzip -l logs.zip
 Archive:  logs.zip
   Length      Date    Time    Name
 ---------  ---------- -----   ----
-     4320  2026-11-01 17:46   logs/probe_out.json
+     4320  2026-11-01 20:39   logs/probe_out.json
 ---------                     -------
      4320                     1 file
 (ocbox exit: 0)
@@ -572,7 +572,7 @@ $ ocbox exec node -e "console.log(JSON.stringify({tool: 'node', value: 6 * 7}))"
 --- openssl: sha256 of out.mp4 + random base64 ---
 $ ocbox exec openssl dgst -sha256 out.mp4 && openssl rand -base64 24
 SHA2-256(out.mp4)= 56378a82cae8852093f456ebe94fbe37c6949064d2d1c150414fe0ed35a503f5
-FKXvNt1q1l7qlyWAkM58zWwAoMM0h/w2
+o2f1C3hsSX128b1jVG9/jjZHIqvT9ES1
 (ocbox exit: 0)
 --- curl: localhost fetch of hello.txt from a workspace http.server ---
 $ ocbox exec python3 -m http.server 18799 --bind 127.0.0.1 >/dev/null 2>&1 & SRV=$!; sleep 1; curl -s http://127.0.0.1:18799/hello.txt; RC=$?; kill $SRV 2>/dev/null; exit $RC
@@ -586,7 +586,7 @@ PASS  seq lanes contiguous  19 execs, seqs 2..20
 PASS  ffmpeg stderr lane holds 'frame=' progress  5658 stderr bytes in 1 scroll(s)
 PASS  ffprobe stdout reassembles to valid JSON  2 streams
 PASS  manifest hash == sha256sum(out.mp4)  56378a82cae88520
-PASS  manifest hash == sha256sum(clip.webm)  a1369e543432b2bb
+PASS  manifest hash == sha256sum(clip.webm)  a6bb1b58e3926106
 PASS  manifest hash == sha256sum(media.db)  5e17efc668066835
 PASS  openssl stdout records out.mp4 sha256  
 PASS  diff lists created media files  
@@ -596,10 +596,10 @@ PASS  sqlite query returns both rows  clip.webm|287434|6.0 | out.mp4|651291|6.0 
 PASS  rg no-match recorded as exit 1  
 PASS  gcc binary ran  
 PASS  curl localhost fetch recorded  
-phext size: 49283 bytes, 42 scrolls
+phext size: 49043 bytes, 42 scrolls
 SHOWCASE RESULT: 14/14 PASS
 
 Showcase phext: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/store/showcase.phext
-SHA-256: 0c4dd5a87ceab9386554e161c753c827f2307da7fb9f90e460135df96e1a3439
-Size: 49283 bytes
+SHA-256: 2f098ce62e1fc5f5627cbb3b62f6e5eaf339e0319fb09ac7e9caf9be80fe8d05
+Size: 49043 bytes
 === showcase complete (verification rc=0) ===

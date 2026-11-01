@@ -1,4 +1,4 @@
-=== ocbox x phext STATE TELEPORTATION — 2026-11-01T17:47:38Z ===
+=== ocbox x phext STATE TELEPORTATION — 2026-11-01T20:39:47Z ===
 
 ########## MACHINE A ##########
 $ ocbox init
@@ -29,10 +29,10 @@ Input #0, lavfi, from 'testsrc=duration=1:size=320x240:rate=10':
   Stream #0:0: Video: wrapped_avframe, rgb24, 320x240 [SAR 1:1 DAR 4:3], 10 fps, 10 tbr, 10 tbn
 Stream mapping:
   Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (libx264))
-[libx264 @ 0x5fca8a154b40] using SAR=1/1
-[libx264 @ 0x5fca8a154b40] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
-[libx264 @ 0x5fca8a154b40] profile High, level 1.2, 4:2:0, 8-bit
-[libx264 @ 0x5fca8a154b40] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=10 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+[libx264 @ 0x561ff30d7b40] using SAR=1/1
+[libx264 @ 0x561ff30d7b40] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x561ff30d7b40] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0x561ff30d7b40] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=10 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
 Output #0, mp4, to 'clip.mp4':
   Metadata:
     encoder         : Lavf62.12.102
@@ -41,26 +41,26 @@ Output #0, mp4, to 'clip.mp4':
       encoder         : Lavc62.28.102 libx264
     Side data:
       CPB properties: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
-[out#0/mp4 @ 0x5fca8a154240] video:6KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 15.670233%
-frame=   10 fps=0.0 q=-1.0 Lsize=       7KiB time=00:00:00.80 bitrate=  73.5kbits/s speed=25.4x elapsed=0:00:00.03    
-[libx264 @ 0x5fca8a154b40] frame I:1     Avg QP:13.70  size:  3309
-[libx264 @ 0x5fca8a154b40] frame P:3     Avg QP:17.05  size:   555
-[libx264 @ 0x5fca8a154b40] frame B:6     Avg QP:14.00  size:   115
-[libx264 @ 0x5fca8a154b40] consecutive B-frames: 20.0%  0.0%  0.0% 80.0%
-[libx264 @ 0x5fca8a154b40] mb I  I16..4: 69.0%  4.7% 26.3%
-[libx264 @ 0x5fca8a154b40] mb P  I16..4:  3.0%  1.3%  1.6%  P16..4:  7.6%  2.7%  2.3%  0.0%  0.0%    skip:81.6%
-[libx264 @ 0x5fca8a154b40] mb B  I16..4:  1.1%  0.3%  0.0%  B16..8:  6.1%  0.9%  0.1%  direct: 0.7%  skip:90.8%  L0:48.8% L1:44.9% BI: 6.2%
-[libx264 @ 0x5fca8a154b40] 8x8 transform intra:8.5% inter:23.1%
-[libx264 @ 0x5fca8a154b40] coded y,uvDC,uvAC intra: 14.0% 40.7% 25.9% inter: 1.4% 3.9% 1.9%
-[libx264 @ 0x5fca8a154b40] i16 v,h,dc,p: 77%  7%  7%  9%
-[libx264 @ 0x5fca8a154b40] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 87%  4%  8%  2%  0%  0%  0%  0%  0%
-[libx264 @ 0x5fca8a154b40] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 47% 29% 16%  2%  1%  2%  0%  2%  0%
-[libx264 @ 0x5fca8a154b40] i8c dc,h,v,p: 37% 19% 37%  7%
-[libx264 @ 0x5fca8a154b40] Weighted P-Frames: Y:0.0% UV:0.0%
-[libx264 @ 0x5fca8a154b40] ref P L0: 82.7%  6.9% 10.4%
-[libx264 @ 0x5fca8a154b40] ref B L0: 86.2%  9.7%  4.1%
-[libx264 @ 0x5fca8a154b40] ref B L1: 97.0%  3.0%
-[libx264 @ 0x5fca8a154b40] kb/s:45.34
+[out#0/mp4 @ 0x561ff30d7240] video:6KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 15.670233%
+frame=   10 fps=0.0 q=-1.0 Lsize=       7KiB time=00:00:00.80 bitrate=  73.5kbits/s speed=29.5x elapsed=0:00:00.02    
+[libx264 @ 0x561ff30d7b40] frame I:1     Avg QP:13.70  size:  3309
+[libx264 @ 0x561ff30d7b40] frame P:3     Avg QP:17.05  size:   555
+[libx264 @ 0x561ff30d7b40] frame B:6     Avg QP:14.00  size:   115
+[libx264 @ 0x561ff30d7b40] consecutive B-frames: 20.0%  0.0%  0.0% 80.0%
+[libx264 @ 0x561ff30d7b40] mb I  I16..4: 69.0%  4.7% 26.3%
+[libx264 @ 0x561ff30d7b40] mb P  I16..4:  3.0%  1.3%  1.6%  P16..4:  7.6%  2.7%  2.3%  0.0%  0.0%    skip:81.6%
+[libx264 @ 0x561ff30d7b40] mb B  I16..4:  1.1%  0.3%  0.0%  B16..8:  6.1%  0.9%  0.1%  direct: 0.7%  skip:90.8%  L0:48.8% L1:44.9% BI: 6.2%
+[libx264 @ 0x561ff30d7b40] 8x8 transform intra:8.5% inter:23.1%
+[libx264 @ 0x561ff30d7b40] coded y,uvDC,uvAC intra: 14.0% 40.7% 25.9% inter: 1.4% 3.9% 1.9%
+[libx264 @ 0x561ff30d7b40] i16 v,h,dc,p: 77%  7%  7%  9%
+[libx264 @ 0x561ff30d7b40] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 87%  4%  8%  2%  0%  0%  0%  0%  0%
+[libx264 @ 0x561ff30d7b40] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 47% 29% 16%  2%  1%  2%  0%  2%  0%
+[libx264 @ 0x561ff30d7b40] i8c dc,h,v,p: 37% 19% 37%  7%
+[libx264 @ 0x561ff30d7b40] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0x561ff30d7b40] ref P L0: 82.7%  6.9% 10.4%
+[libx264 @ 0x561ff30d7b40] ref B L0: 86.2%  9.7%  4.1%
+[libx264 @ 0x561ff30d7b40] ref B L1: 97.0%  3.0%
+[libx264 @ 0x561ff30d7b40] kb/s:45.34
 (ocbox exit: 0)
 $ ocbox exec cat data.txt
 seed data for the teleport demo project
@@ -68,7 +68,7 @@ seed data for the teleport demo project
 $ ocbox stop
 record complete — checkpoint at 2.1.1/8.1.1/1.1.1
 Machine A phext: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/widget/.ocbox-phext/widget.phext
-Machine A phext SHA-256: 8e16b1a69223e6e1a1a6bff5c40c7380db08046159d296361acc1b11efd1b19c
+Machine A phext SHA-256: ae21cf3528ff880872ea403125257f7fc6acb011eb7be18a7b8b74e5c5c107ca
 Machine A phext size: 9818 bytes
 --- recording machine A's facts (direct SQ reads, for later assertions) ---
 {
@@ -95,7 +95,7 @@ Machine A phext size: 9818 bytes
    "0"
   ]
  ],
- "checkpoint_pre_checksum": "6a12f03e86cba4fd21c0d00c1bddb741cf696fd8993a8326fd5bdf824135e895",
+ "checkpoint_pre_checksum": "ae2b1feb881222cd9f96736cbf1dd58ab6b8f93e0be88b3a33f0afa4b3e55b10",
  "final_seq": "5",
  "manifest": {
   "README.md": "8f864321382ebc9f64e017e5a5c1278f68ae2c0461c4071778b61d0cd1849171",
@@ -119,8 +119,8 @@ B shim home: absent — no state.json, no workspaces
 /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/README.md
 /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/compute.py
 /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/data.txt
-A phext SHA-256:      8e16b1a69223e6e1a1a6bff5c40c7380db08046159d296361acc1b11efd1b19c
-B received SHA-256:   8e16b1a69223e6e1a1a6bff5c40c7380db08046159d296361acc1b11efd1b19c
+A phext SHA-256:      ae21cf3528ff880872ea403125257f7fc6acb011eb7be18a7b8b74e5c5c107ca
+B received SHA-256:   ae21cf3528ff880872ea403125257f7fc6acb011eb7be18a7b8b74e5c5c107ca
 JUMP INTEGRITY: MATCH
 
 ########## MACHINE B ##########
@@ -128,12 +128,12 @@ $ ocbox init
 initialized project 'widget' (.ocbox.json)
 $ ocbox teleport-in /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/received/widget.phext
 teleported: widget (project int 2) from /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/received/widget.phext
-phext_sha256: 8e16b1a69223e6e1a1a6bff5c40c7380db08046159d296361acc1b11efd1b19c
+phext_sha256: ae21cf3528ff880872ea403125257f7fc6acb011eb7be18a7b8b74e5c5c107ca
 integrity: OK
 stream verification: 8 streams checked, 0 failed
-session s_1 (int 1) — stopped 2026-11-01T17:48:00Z
+session s_1 (int 1) — stopped 2026-11-01T20:40:09Z
   checkpoint: 2.1.1/8.1.1/1.1.1
-  checkpoint_pre_checksum: 6a12f03e86cba4fd21c0d00c1bddb741cf696fd8993a8326fd5bdf824135e895
+  checkpoint_pre_checksum: ae2b1feb881222cd9f96736cbf1dd58ab6b8f93e0be88b3a33f0afa4b3e55b10
   final_seq: 5
   commands:
     seq 2: $ python3 compute.py -> exit 0
@@ -145,7 +145,6 @@ last_command: $ cat data.txt
 last_exit: 0
 next: ocbox context | ocbox start (session s_2)
 $ ocbox context   (baseline at the teleport point)
-ocbox: recovering wedged sq daemon in /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/.ocbox-phext (killing pid(s) [46212], clearing stale .sq)
 (context ran with state rebuilt from the phext only; toc/delta baseline recorded)
 --- CONTINUATION on machine B ---
 Project files came from the repo (re-copy above). Session state —
@@ -178,7 +177,7 @@ Coordinates changed since last context:
 session: s_2
 session_int: 2
 project_int: 2
-stopped: 2026-11-01T17:49:53Z
+stopped: 2026-11-01T20:40:10Z
 final_seq: 2
 max_seq_meta: 1
 max_seq_transcript: 2
@@ -188,27 +187,27 @@ max_seq_files: 1
 max_seq_env: 1
 max_seq_checkpoint: 1
 lane_map_coord: 2.2.1/8.1.1/2.1.1
-lane_map_sha256: 351489def78b4f3b44799b25878befcc4a50861c262f1ffe867cd6c780c3af1c
+lane_map_sha256: d8cae55b4c475bc277440c270a5a86cd6ca6613ccdebf388c298ab5ed32ffeb5
 lane_map_scrolls: 6
-prev_checkpoint_sha256: f84cb9e0fd22fd25099ff03c0b965ab4a6920eb644c78457bdaa100a778824b6
-pre_checkpoint_checksum: 543e167197f8638c69b6f3ac4c88965a683ac53b5c06a868441b54d711b110f9
-delta_sha256: 351489def78b4f3b44799b25878befcc4a50861c262f1ffe867cd6c780c3af1c
+prev_checkpoint_sha256: 80cb21a4faed8c7603549cd7a0990a79d50d52ccd0bbce8201b8f98cb2c986e0
+pre_checkpoint_checksum: 3580a0d0e2eff6af0b124ff22f9700d00c478b797886d980e6bca566fa8658d1
+delta_sha256: d8cae55b4c475bc277440c270a5a86cd6ca6613ccdebf388c298ab5ed32ffeb5
 
 === VERIFICATION (direct SQ reads on machine B's phext) ===
 PASS  briefing commands == machine A commands  4 commands
 PASS  briefing last command + exit match A  
 PASS  briefing file list match A manifest  ['README.md', 'clip.mp4', 'compute.py', 'data.txt', 'note.txt']
 PASS  briefing checkpoint checksum == A checkpoint  
-PASS  session 2 meta quotes session 1 id + checkpoint checksum  of s_1, sum 6a12f03e86cba4fd
+PASS  session 2 meta quotes session 1 id + checkpoint checksum  of s_1, sum ae2b1feb881222cd
 PASS  registry now holds both sessions  s_1	1 | s_2	2 | 
 PASS  session 2 lanes exist  8 coords
 PASS  continuation recreated note.txt with A's manifest hash  19b7481ac1164a91
 PASS  note.txt content hash is the known content  
 PASS  context delta since teleport = continuation coords only  9 changed coords
-A phext sha256 (pre-jump): 8e16b1a69223e6e1a1a6bff5c40c7380db08046159d296361acc1b11efd1b19c
+A phext sha256 (pre-jump): ae21cf3528ff880872ea403125257f7fc6acb011eb7be18a7b8b74e5c5c107ca
 TELEPORT RESULT: 10/10 PASS
 
 Machine B phext after continuation: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/.ocbox-phext/widget.phext
-SHA-256: 27cb505d591873ec3d99f8bb3f0192751908d16ea408c6f7a17d170a44f3099d
+SHA-256: 7a51287ef20a0220fc614c7186cc6247baa89184915f46db11c4d343a765df9e
 Size: 12399 bytes (A's file was 9818 bytes)
 === teleport complete (verification rc=0) ===

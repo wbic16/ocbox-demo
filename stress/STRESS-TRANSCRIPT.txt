@@ -1,4 +1,4 @@
-=== ocbox x phext STRESS — 2026-11-01T17:45:22Z ===
+=== ocbox x phext STRESS — 2026-11-01T20:40:12Z ===
 --- cleaning prior stress state ---
 --- generating stress project in /home/hatch/workspace/ocbox-phext/stress/.stress-state/src ---
 $ ocbox start   (session 1)
@@ -24,11 +24,11 @@ only stderr here
 $ ocbox exec dd if=/dev/urandom bs=1024 count=64   (stdout redirected to a capture file)
 64+0 records in
 64+0 records out
-65536 bytes (66 kB, 64 KiB) copied, 0.000555806 s, 118 MB/s
-(ocbox exit: 0; captured stdout: 65536 bytes, sha256 270b77923b73d1ca38e0df8258ae03004cdbbdf69cc0f40ac81abd428b079ace)
+65536 bytes (66 kB, 64 KiB) copied, 0.000393401 s, 167 MB/s
+(ocbox exit: 0; captured stdout: 65536 bytes, sha256 df6113ed50622ee3e4153e489ec3e3a83e9dbf7eb5159db9e228eb40150eba41)
 --- CASE 4b: binary stdout (openssl rand 4096, raw) ---
 $ ocbox exec openssl rand 4096   (stdout redirected to a capture file)
-(ocbox exit: 0; captured stdout: 4096 bytes, sha256 aed721a5bced7fd99b45a152cb935e05ca7dadd1ab13e7e4f225824726096091)
+(ocbox exit: 0; captured stdout: 4096 bytes, sha256 94303260745538a3e827d2d078c7438c4f56fbeeba8d5699e5887ef75bc4bbd1)
 --- CASE 5a: unicode + emoji + combining characters ---
 $ ocbox exec python3 -c "print('héllo wörld 🌍🔥'); print('é combining, ünïcodé')"
 héllo wörld 🌍🔥
@@ -260,7 +260,7 @@ words.txt
 $ ocbox exec dd if=/dev/urandom of=big.bin bs=1M count=10; printf 'tail' >> blob.bin
 10+0 records in
 10+0 records out
-10485760 bytes (10 MB, 10 MiB) copied, 0.0448874 s, 234 MB/s
+10485760 bytes (10 MB, 10 MiB) copied, 0.0386832 s, 271 MB/s
 (ocbox exit: 0)
 $ ocbox stop   (session 1)
 record complete — checkpoint at 2.1.1/8.1.1/1.1.1
@@ -303,13 +303,13 @@ PASS  7 seqs contiguous, no gaps/dupes  session 1 seqs 2..82 (81 execs)
 PASS  7 checkpoint final_seq == last seq  final_seq 82
 PASS  8 filenames in manifest+diff  
 PASS  9 session 2 registered + disjoint lanes  registry lines + 9 coords
-PASS  9 session 2 meta chains to session 1  chain 54646c77dddd6784
+PASS  9 session 2 meta chains to session 1  chain ebb23dc10111373f
 PASS  10 big.bin manifest hash == sha256sum  workspace /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_1/workspace
 PASS  10 modified binary = hash record, no difflib dump  
-phext size: 5198797 bytes (5198453 bytes of scroll text, 251 scrolls)
+phext size: 5198796 bytes (5198452 bytes of scroll text, 251 scrolls)
 STRESS RESULT: 28/28 PASS
 
 Stress phext: /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
-SHA-256: b282f527ed69d1ef6318689c3f0612151d2d7bc9d21767211b0c088cc8fad222
-Size: 5198797 bytes
+SHA-256: a0dc944d02aa33342bbc609c7fafd336d2f02066271f64aafac8dc900cd268bf
+Size: 5198796 bytes
 === stress complete (verification rc=0) ===

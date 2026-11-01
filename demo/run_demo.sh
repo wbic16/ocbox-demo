@@ -99,74 +99,65 @@ def _cli(*args, timeout=60):
     return r.stdout
 
 def _ensure_daemon():
-    import time as _time
-    want = "Hosting: sample.phext"
-    def _hosting():
-        try:
-            out = subprocess.run([SQ, "status"], cwd=store,
-                                 capture_output=True, timeout=10) \
-                .stdout.decode("utf-8", "replace")
-            return want in out
-        except subprocess.TimeoutExpired:
-            return False
-    # Patience first: `sq status` blocks while a daemon loads a large
-    # phext, so probe for a while before concluding none is coming —
-    # spawning anyway stacks duplicate daemons on one phext.
-    deadline = _time.time() + 30
-    while _time.time() < deadline:
-        if _hosting():
-            return
-        _time.sleep(2)
-    # Wedged-daemon recovery: kill any `sq share sample.phext` process
-    # whose cwd is this store (found via /proc — works even when no
-    # sq-daemon.json exists) and clear stale .sq before the respawn.
     import os as _os, shutil as _shutil, signal as _signal
-    for _entry in Path("/proc").glob("[0-9]*"):
-        try:
-            _cmd = (_entry / "cmdline").read_bytes().decode("utf-8", "replace")
-            if "share" in _cmd and "sample.phext" in _cmd and \
-                    _os.readlink(_entry / "cwd") == str(store):
-                _os.kill(int(_entry.name), _signal.SIGKILL)
-        except OSError:
-            continue
-    _time.sleep(1)
-    _shutil.rmtree(store / ".sq", ignore_errors=True)
-    # Settle before spawning: zero store daemons (even mid-exit) and
-    # no .sq directory — the proven-clean preconditions for `sq share`.
-    import os as _os2, shutil as _shutil2, signal as _signal2
+    import time as _time
+    # Layer 7 discipline (same as the ocbox writer — POLISH.md Layer
+    # 6): NEVER probe a starting daemon with client ops. An sq client
+    # that runs before the daemon creates its shared-memory channel
+    # can steal the channel and wait forever, and a `share` that
+    # loses that race silently becomes a client — the old probe-loop
+    # version of this function raced exactly that way and could
+    # report "could not start the sq daemon" against a healthy
+    # spawn. Existence comes from /proc; a fresh spawn is gated on
+    # the daemon's own "Serving" log line before any client op runs.
     def _store_procs():
         _found = []
         for _e in Path("/proc").glob("[0-9]*"):
             try:
-                _c = (_e / "cmdline").read_bytes().decode("utf-8", "replace")
+                _c = (_e / "cmdline").read_bytes().decode(
+                    "utf-8", "replace")
                 if "share" in _c and "sample.phext" in _c and \
-                        _os2.readlink(_e / "cwd") == str(store):
+                        _os.readlink(_e / "cwd") == str(store):
                     _found.append(int(_e.name))
             except OSError:
                 continue
         return _found
-    _dl = _time.time() + 10
-    while _store_procs() and _time.time() < _dl:
-        _time.sleep(0.2)
+    def _spawn_gated():
+        _logf = store / ".verify-daemon.log"
+        _off = _logf.stat().st_size if _logf.exists() else 0
+        _log = open(_logf, "ab")
+        _proc = subprocess.Popen([SQ, "share", "sample.phext"], cwd=store,
+                                 stdout=_log, stderr=_log,
+                                 stdin=subprocess.DEVNULL,
+                                 start_new_session=True)
+        _log.close()
+        _dl = _time.time() + 90
+        while _time.time() < _dl:
+            if _proc.poll() is not None:
+                return False
+            try:
+                with open(_logf, "rb") as _f:
+                    _f.seek(_off)
+                    if b"Serving " in _f.read():
+                        return True
+            except OSError:
+                pass
+            _time.sleep(0.1)
+        return False
+    if _store_procs():
+        return  # a daemon for this phext is already up in this store
+    if _spawn_gated():
+        return
+    # One recovery cycle: clear the store's daemon state, respawn.
     for _pid in _store_procs():
         try:
-            _os2.kill(_pid, _signal2.SIGKILL)
+            _os.kill(_pid, _signal.SIGKILL)
         except OSError:
             pass
-    if _store_procs():
-        _time.sleep(1)
-    _shutil2.rmtree(store / ".sq", ignore_errors=True)
-    subprocess.Popen([SQ, "share", "sample.phext"], cwd=store,
-                     stdout=subprocess.DEVNULL,
-                     stderr=subprocess.DEVNULL,
-                     stdin=subprocess.DEVNULL, start_new_session=True)
-    deadline = _time.time() + 60
-    while _time.time() < deadline:
-        if _hosting():
-            return
-        _time.sleep(1)
-    raise RuntimeError("verifier could not start the sq daemon")
-
+    _time.sleep(1)
+    _shutil.rmtree(store / ".sq", ignore_errors=True)
+    if not _spawn_gated():
+        raise RuntimeError("verifier could not start the sq daemon")
 _ensure_daemon()
 
 def get(endpoint, **params):

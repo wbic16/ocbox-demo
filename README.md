@@ -111,9 +111,13 @@ Two layers, one direction of trust:
 - **Phext writer** (`PhextWriter`): the single, trusted-side writer to SQ.
   It drives SQ in **daemon mode**: `sq share <phext>` in the store dir,
   payloads moved byte-exact via `pull`/`push`, small appends via `insert`,
-  plus `toc`/`save`/`shutdown` (see "Transport" under Known MVP limits for
+  plus `toc`/`save` (see "Transport" under Known MVP limits for
   why daemon, and GAP-ANALYSIS.md's fix-pass addendum for the measured
-  decision). Session output is inert *data* to
+  decision). Daemon startup is readiness-gated on the daemon's own log
+  (POLISH.md Layer 6 explains why: SQ's channel has no handshake, and a
+  client started too early can steal it), identity is /proc-verified,
+  and shutdown is by signal — SQ's `shutdown` command doesn't save, and
+  its client can hang on a stalled channel. Session output is inert *data* to
   this layer — untrusted output never gets a handle to SQ and never chooses
   a coordinate or a sequence number.
 
@@ -134,12 +138,12 @@ repo).
 | `ocbox init` | Write `.ocbox.json` (project name) in the current directory |
 | `ocbox start` | Start a Session: copy the project into a fresh workspace, register the project/session, write meta (class 1) and env **names only** (class 7) |
 | `ocbox exec [--interactive] [--timeout N] <command...>` | Run in the session workspace, streaming output live; on exit, flush transcript / stdout / stderr scrolls and return the command's exit code. stdin defaults to DEVNULL (`--interactive` inherits it); `--timeout N` (or `OCBOX_EXEC_TIMEOUT`) kills the command's process group on expiry and records the timeout |
-| `ocbox status` | Current project, session, workspace, sequence state |
-| `ocbox ls` | All sessions across projects known to the shim |
-| `ocbox context [--lane <class>] [--session <int>] [--full]` | **New command (this integration, not upstream ocbox):** print a per-session/class toc *summary* (coordinate + size + clipped preview only with `--full` or a scope filter), which coordinates changed since the last `context`, and the latest checkpoint. A no-change resume on the 5 MB stress phext prints ~1 KB and costs 4 SQ ops (see POLISH.md Layer 5) |
+| `ocbox status` | Current project, session, workspace, sequence state, plus the store's SQ daemon state (from /proc — status starts no SQ client) |
+| `ocbox ls` | All sessions across projects known to the shim; projects whose store daemon is running say so |
+| `ocbox context [--lane <class>] [--session <int>] [--full]` | **New command (this integration, not upstream ocbox):** print a per-session/class toc *summary* (coordinate + size + clipped preview only with `--full` or a scope filter), which coordinates changed since the last `context`, and the latest checkpoint. A no-change resume on the 5 MB stress phext prints ~1 KB and costs 4 SQ ops (see POLISH.md Layer 5; independently reproduced in Layer 7). Daemon hygiene: `context` shuts the store daemon down again on exit unless a session is active in the store |
 | `ocbox stop` | Pre-stop capture (diff → class 5, manifest → class 6, checkpoint → class 8), then mark the session stopped and shut the store's SQ daemon down (`context`/`start` restart it on demand). If the workspace vanished mid-session, the record says so (`workspace: missing at stop`) instead of claiming completeness |
 | `ocbox destroy [--force]` | Delete the session workspace. The phext remains — that is the point. Refuses on an *active* session; `--force` first writes a tombstone line into the session's meta lane |
-| `ocbox teleport-in [--expect-sha256 <hex>] [--adopt] <file.phext>` | **Layer 4:** in a fresh environment, rebuild writer state from a phext file alone and print a resume briefing generated only from phext data (see "State teleportation"). The incoming phext is validated *before* it is installed (structure, checkpoint consistency, per-stream hashes); the briefing prints the file's SHA-256 and an `integrity: OK / DEGRADED` verdict. A registry name that doesn't match the local project is refused unless `--adopt` is passed |
+| `ocbox teleport-in [--expect-sha256 <hex>] [--adopt] <file.phext>` | **Layer 4:** in a fresh environment, rebuild writer state from a phext file alone and print a resume briefing generated only from phext data (see "State teleportation"). The incoming phext is validated *before* it is installed (structure, checkpoint consistency, per-stream hashes); the briefing prints the file's SHA-256 and an `integrity: OK / DEGRADED` verdict. A registry name that doesn't match the local project is refused unless `--adopt` is passed; adoption renames the local project in shim state AND in `.ocbox.json`, so every later command addresses the teleported phext |
 
 Every subcommand has `ocbox help <command>` text. The CLI's own exit
 codes: 0 on success, 2 for usage/state errors (no project, no active
@@ -258,13 +262,16 @@ included, is in `demo/DEMO-TRANSCRIPT.txt`.
   (0.0.0.0, keyless unless `OCBOX_SQ_KEY` was set, hosts left running,
   port files adopted unvalidated) is gone; `OCBOX_SQ_KEY` is now
   **ignored** — there is nothing local for a key to protect. The daemon
-  is started on demand, validated as belonging to the store directory,
-  and shut down by `stop`/`destroy`. Measured latency is at parity with
-  HTTP (GAP-ANALYSIS.md addendum has the table). One caveat found in
-  testing: SQ daemons occasionally wedge (alive, not answering);
-  the writer detects this via /proc + a single warm-up op and recovers
-  the store's daemon automatically. SQ still rewrites the whole phext
-  per mutation — that cost is transport-independent and unchanged.
+  is started on demand, proven to be serving (its own log's `Serving`
+  line — SQ's shared-memory channel has no handshake, and a client
+  started before its daemon can steal the channel and wait forever;
+  POLISH.md Layer 6 has the full diagnosis), identity-verified via
+  /proc, and shut down by `stop`/`destroy` — and by `context` too,
+  unless a session is active in the store. A daemon proven
+  unresponsive (alive, not answering) is recovered automatically:
+  one verified kill + respawn + retry, then a loud failure. SQ still
+  rewrites the whole phext per mutation — that cost is
+  transport-independent and unchanged.
 - **The checkpoint checksum is the *pre-checkpoint* checksum** — the
   SHA-256 of the phext file after the diff, manifest and lane-map
   scrolls are written and saved, before the checkpoint scroll itself is
@@ -274,7 +281,13 @@ included, is in `demo/DEMO-TRANSCRIPT.txt`.
   the checkpoint's lane-hash map on a teleported phext — SQ's daemon
   `delta` is not used (its semantics differ across SQ versions, and
   daemon `checksum` is per-scroll only). Changed coordinates are listed;
-  unchanged lanes are never pulled.
+  unchanged lanes are never pulled. Verified out-of-band by
+  `tests/change_detection.sh`: mutations made with raw `sq` behind
+  ocbox's back (an insert and an update at small scale, a single
+  insert at stress scale) are named exactly by the next `context`.
+  One boundary: editing the phext *file* directly while a session
+  daemon is live can be overwritten by that daemon's next save (its
+  memory is authoritative in SQ's model).
 - **SQ `json-export` is lossy.** It escapes neither tab characters nor
   backslashes inside scrolls: a recorded command line containing a
   literal `\r` (backslash-r) parses back as a real carriage return, and
@@ -372,5 +385,9 @@ it, the divergence lives here:
   kept as evidence under their (otherwise gitignored) state dirs
 - `tests/fix_regressions.sh` — the fix-pass regression suite (Layer 5):
   one assert group per GAP-ANALYSIS finding
-- `GAP-ANALYSIS.md` — the audit, with a dated fix-pass addendum:
-  transport decision, per-gap resolutions, before/after measurements
+- `tests/change_detection.sh` — the out-of-band mutation suite
+  (Layer 7): raw-`sq` insert/update behind ocbox's back at small and
+  stress scale, plus the measured no-change context (1,001 B / 4 ops)
+- `GAP-ANALYSIS.md` — the audit, with dated addenda: transport
+  decision, per-gap resolutions, before/after measurements, and the
+  Layer 7 lifecycle cluster (L1–L8)

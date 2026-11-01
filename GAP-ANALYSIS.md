@@ -228,3 +228,43 @@ checkpoint. The change path diffs per-scroll hashes (baseline from
 and prints only the changed coordinates. `--lane <class>` /
 `--session <int>` scope the toc; `--full` is the explicit opt-in to the
 old everything-listing.
+
+# Addendum — Layer 7 (2026-11-01): daemon-lifecycle cluster + detector verification
+
+Found after the fix pass shipped, when Will challenged the P10
+headline ("353 KB → 1 KB sounds like undetected failure") and Emise's
+verification probes failed: `teleport-in` of the real stress phext
+failed 2/2 with a wedge-recovery event, and her follow-up context
+measurements (~150 B) turned out to be reading an empty phext. Full
+diagnosis: POLISH.md Layer 6 (SQ 0.6.0 source + deterministic
+reproduction). Resolutions below; verification: POLISH.md Layer 7.
+
+| # | Gap | Status | Resolution |
+|---|---|---|---|
+| L1 | Spawn/warm-up ownership race: the writer's first client op runs concurrently with daemon startup; an sq client that executes first creates the shared-memory channel itself and waits forever, while the daemon serves — "wedge" diagnosed against a healthy daemon | **RESOLVED** | Readiness gate: no client op until the daemon's log proves service (`Serving N scrolls` past the pre-spawn offset + flink files), then a content-checked warm-up. Deterministic repro (3 s delayed share): was rc=1/121.5 s, now rc=0/10.3 s, no leftovers |
+| L2 | Recovery identity was cmdline-deep: /proc cmdline+cwd cannot distinguish serving / starting / share-turned-client processes; recovery SIGKILLed healthy daemons | **RESOLVED** | sq-daemon.json records pid + /proc start time + shm link/work names, written only after confirmation; adoption verifies all; recovery requires PROVEN unresponsiveness (a stalled content-checked op against a believed-serving daemon) and kills by start-time-guarded signals |
+| L3 | Failure paths orphaned processes: `die()` inside daemon startup left the respawned daemon running; teleport-in built its scratch writer outside the try/finally, leaking daemon + `.sq` + scratch dir | **RESOLVED** | Startup kills its own unconfirmed spawn on every failure path; scratch writer constructed inside the try/finally |
+| L4 | `context` leaked its daemon (one per call, surviving even project-dir deletion); `status` probed with a 2 s-fused client of the same steal-prone class | **RESOLVED** | `context`/`destroy` shut the daemon down unless a session is active in the store; `status`/`ls` report daemon state from /proc only and start no clients |
+| L5 | Warm-up trusted exit code; SQ prints `Error: MapOpenFailed(2)` with exit 0 — a false "healthy" was possible against a stale `.sq` | **RESOLVED** | Warm-up requires rc=0 AND a real toc payload (`* ` prefix) |
+| L6 | Twin daemons on one file reachable via duplicate `share`; client-based shutdown/status probes in the shared-store path could hang or steal | **RESOLVED** | Twins → clean recovery; settle requires a verified-empty dir; slot takeover and shutdown are signal-based (SQ `shutdown` does not save; callers save first) |
+| L7 | `--adopt` identity split: adoption renamed the project in shim state but not `.ocbox.json`, so every later command addressed a fresh empty `<oldname>.phext` — post-teleport contexts measured the wrong file entirely | **RESOLVED** | Adoption rewrites `.ocbox.json`'s `project` as well; found by `tests/change_detection.sh`, whose stress leg initially "detected nothing" for this reason |
+| L8 | Suite verifiers (5 copies) carried the L1 race in their own daemon-start code | **RESOLVED** | All five upgraded to the gated spawn; showcase's one verifier-start failure in this layer's first pass is recorded in POLISH.md Layer 7, not hidden |
+
+## Detector verdict (P10 revisited)
+
+Will's challenge was justified as a demand for evidence: between
+the fix pass and this addendum, the 1,001 B / 4 ops figure was
+**not reproducible** — L1 made the teleport path fail outright and
+L7 made every post-teleport measurement read an empty file. With
+both fixed, `tests/change_detection.sh` (new, 7/7) reproduces the
+figure exactly on the teleported stress phext (1,001 B output; ops:
+warm-up toc, save, toc, checkpoint pull; a cold store adds one
+`share` spawn) and proves the detector awake: out-of-band raw-sq
+INSERT + UPDATE at small scale are both named by the next context,
+and a single out-of-band INSERT at stress scale is reported as
+EXACTLY that one coordinate among 251 scrolls. Residual boundary:
+changes made by editing the phext FILE directly while a session
+daemon is live can be overwritten by that daemon's next `save()`
+(its memory is authoritative in SQ's model); channel-driven
+changes, and any changes while no session daemon is live, are
+detected as tested.

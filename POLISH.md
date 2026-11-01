@@ -262,3 +262,225 @@ caveat: under heavy concurrent load on this machine, a single
 regression-suite assert has occasionally flaked (daemon wedge class)
 and passed on rerun; the suites' verifiers use the same
 settle/recovery discipline as the writer.
+
+## Layer 6 — Daemon-lifecycle defect cluster: DIAGNOSIS (2026-11-01, post-publish)
+
+Written BEFORE the fix, at Will's challenge ("353 KB to 1 KB sounds
+like undetected failure") and Emise's failed verification probes:
+`teleport-in` of the real 5.2 MB stress phext failed 2/2 (rc=1) with
+a wedge-recovery event and "sq daemon did not come up"; a trivial
+start→exec→stop→context cycle also triggered wedge recovery; the
+1,001 B / 4 ops figure had never been independently reproduced and
+no out-of-band mutation test of the change detector had ever run.
+Diagnosis method: SQ 0.6.0 source read directly (cargo registry
+copy), controlled experiments, and a deterministic reproduction.
+
+**How SQ daemon mode actually works (from `sq-0.6.0/src/main.rs`).**
+The channel is a single-slot shared-memory mailbox: one 1 GB segment
+(messages) + one 1 KB segment (work event), named by files
+`.sq/link` / `.sq/work` in the daemon's cwd, each containing a
+RANDOM per-spawn OS shm name (`/shmem_<hex>`). Addressing is strictly
+per-directory (no parent-dir discovery; same phext basename in two
+dirs is fully independent — both verified experimentally). A client
+writes its request into the slot, signals the event, and waits with
+`Timeout::Infinite` — **no client-side timeout, no server-identity
+check, one request at a time**. Segment acquisition is
+create-or-open: whichever sq process (client OR `share`) creates the
+segment first owns it; a process that opens instead of creating is
+treated as a client. Consequences, all confirmed by experiment:
+
+- A **client started in a dir with no live daemon blocks forever**
+  (it creates the segment itself and waits for a server that will
+  never attach). `sq toc` / `sq status` with no daemon: still blocked
+  at 8 s, killed by the test harness's timeout.
+- A **`share` process that loses the create race silently becomes a
+  client** and blocks forever — alive in /proc as `sq share <file>`,
+  indistinguishable by cmdline from a real daemon, never serving.
+  Only its log betrays it: a real server prints `Operating in daemon
+  mode.` / `Serving N scrolls.`; a share-turned-client prints neither.
+- **`sq share` deletes `.sq` on every startup**
+  (`recreate_sq_work_files`), so a duplicate `share` unlinks the live
+  daemon's flink files: afterwards two daemons serve divergent
+  in-memory copies of one file, and `sq shutdown` reaches only the
+  current link owner (reproduced: shutdown killed the second daemon,
+  left the first alive and unreachable).
+- **`shutdown` does not save** (server-side it just ends the loop);
+  `save` is the only persistence. Signal-based shutdown after an
+  explicit save is therefore semantically equivalent.
+- SQ clients print errors like `Error: MapOpenFailed(2)` yet **exit
+  0** (observed against a stale `.sq`), so exit code alone cannot
+  prove channel health.
+- Killed daemons leak their /dev/shm segments (owner-drop cleanup
+  does not run under SIGKILL, and segments were observed to persist
+  even after clean shutdowns); each daemon also reserves a sparse
+  1 GB work segment. Segment names are random, so leaks cost inodes,
+  not collisions.
+
+**The race at the heart of the cluster.** `PhextWriter._spawn_and_
+confirm` Popen's the daemon and IMMEDIATELY runs the warm-up `sq toc`
+client. The daemon must be scheduled, delete/recreate `.sq`, and
+create both segments before that client runs its own create-or-open —
+on an idle box the daemon wins easily (teleport of the stress phext:
+2/2 clean, ~4 s, integrity OK); under load the newborn daemon's
+scheduling lag is arbitrarily long, and if the warm-up client runs
+first it **creates the segment itself and waits forever on its
+orphan segment**. The daemon then starts normally and serves — but
+the warm-up never returns. At the 60 s fuse, subprocess kills the
+(client) process, `_warmup_ok` reports failure, and `_recover_wedged`
+SIGKILLs **the healthy daemon** — its /proc scan (cmdline + cwd)
+cannot distinguish serving / starting / zombie processes, and the
+actually-broken process (the writer's own timed-out client) is
+already dead and never examined. The respawn rolls the same dice
+under the same conditions and fails the same way; `die()` then
+leaves the respawned (healthy) daemon running and — because
+`cmd_teleport_in` constructs its validation writer OUTSIDE the
+try/finally — leaves the whole `.validate-<pid>` scratch dir behind.
+
+**Deterministic reproduction** (3 s delayed-`share` SQ_BIN shim,
+simulating spawn scheduling lag; census + independent witness):
+warm-up client stole ownership at t≈0; daemon pid 7082 was serving
+by t=3.6 s (`Serving 251 scrolls` in its log); an independent `sq
+toc` at t≈12 s returned rc=0 with the full 352,574-byte toc **while
+ocbox believed the daemon wedged**; recovery killed pid 7082 at
+t=60.4 s; respawn pid 8153 hit the identical race; teleport-in died
+at t=121.5 s leaving healthy daemon 8153 and the scratch dir in
+place. This matches Emise's live observations (recovery event,
+"did not come up", leftover `sq share incoming.phext`) point for
+point. The 5 MB size of the stress phext is a red herring: the race
+window is spawn scheduling lag, not load time (the daemon loads
+5.2 MB in well under a second); the stress phext was simply the file
+being teleported in the heaviest-tested, busiest-box moments.
+
+**Defects (ocbox side), numbered for the fix:**
+- **D1** Warm-up races daemon startup — a client can steal segment
+  ownership; "wedged" is diagnosed against a healthy daemon. There
+  is no readiness gate between spawn and first client op.
+- **D2** Recovery identity is cmdline-deep: it cannot tell a serving
+  daemon from a starting one or a share-turned-client zombie, so it
+  kills healthy daemons; one respawn under unchanged conditions is
+  not a remedy for a scheduling race.
+- **D3** Failure paths orphan processes: `_ensure_daemon`'s `die()`
+  kills nothing it spawned; teleport-in's scratch writer is built
+  outside the try/finally, so a construction failure leaks the
+  daemon, `.sq`, `sq-daemon.json`, and the scratch dir.
+- **D4** Read-path leaks: `cmd_context` spawns a daemon and NEVER
+  shuts it down (measured: 8 stop→context cycles, daemon pid churned
+  every cycle, one always left alive — including after its project
+  dir was deleted, per Emise's probe). `cmd_status` probes with a
+  2 s-fused `sq status` client of the same steal-prone class.
+- **D5** `_warmup_ok` trusts exit code only; SQ's rc=0 error prints
+  make a false "healthy" possible against a stale `.sq`.
+- **D6** Duplicate-share twins are reachable whenever a spawn is
+  issued against a dir whose daemon is mid-exit; the writer's
+  settle logic polls the same ambiguous /proc signal.
+
+**Status of the detector question at diagnosis time: UNANSWERED.**
+The 1,001 B / 4 ops figure is context's file-SHA short-circuit on an
+unchanged file, measured by the builder in the original stress
+store. The short-circuit is only as sound as "the file is ground
+truth" — and this writer's `context` opens with `save()`, flushing
+the attached daemon's memory over the file, so an out-of-band change
+that never reached that daemon's memory could in principle be
+overwritten before it is ever compared. Whether that happens in
+practice — and whether the per-scroll diff catches direct SQ-level
+mutation at all — is exactly what the new `tests/change_detection.sh`
+suite (Layer 7) exists to answer at small and stress scale.
+
+## Layer 7 — Lifecycle fix + detector verdict (2026-11-01)
+
+**Writer fixes (one per Layer 6 defect):**
+- **D1 → readiness gate.** `_spawn_and_confirm` now waits for the new
+  daemon's own proof of service — `Serving N scrolls` in
+  sq-daemon.log past the pre-spawn offset, plus both `.sq` flink
+  files — BEFORE any client op runs, then confirms with one
+  content-checked warm-up. No client ever races a spawn again.
+- **D5 → content-checked warm-up.** `toc` must return rc=0 AND a
+  payload starting with `* ` (SQ's `Error: MapOpenFailed(2)` exits
+  0; rc alone proved nothing).
+- **D2 → proven identity, proven unresponsiveness.** sq-daemon.json
+  is written only AFTER confirmation and records pid + /proc start
+  time + the shm link/work names; adoption verifies all of them
+  (pid-reuse- and daemon-swap-proof). Recovery fires only after a
+  daemon believed serving stalls a content-checked op, kills by
+  /proc-verified scope (TERM→KILL, start-time-guarded waits), and
+  respawns exactly once, behind the gate. Every op is bounded:
+  reads and absolute writes get ONE recovery+respawn+retry via
+  `_cli`; `insert` (an append) first verifies through `pull`
+  whether the append landed, so it is applied exactly once.
+- **D3 → no orphans.** `_ensure_daemon` kills its own unconfirmed
+  spawn on every failure path, and `cmd_teleport_in` constructs its
+  scratch writer inside the try/finally (a failed validation now
+  leaves neither daemon nor scratch dir).
+- **D4 → read-path hygiene.** `context` shuts the store daemon down
+  on exit unless a session is active in that store; `destroy` does
+  the same check. `status`/`ls` report a running daemon from /proc
+  evidence only — status's 2 s probe client (itself steal-prone) is
+  gone. Shared-store slot takeover is by verified signals, not
+  client `shutdown`/`status` probes (SQ's `shutdown` doesn't save
+  anyway; callers save first).
+- **D6 → twins handled.** Adoption finding >1 verified daemon for
+  one phext goes straight to clean recovery; settle-before-spawn
+  waits for a verified-empty dir.
+
+**New bug found BY the detector suite (not in the Layer 6 list):**
+`teleport-in --adopt` renamed the project in shim *state* only —
+`.ocbox.json` kept the old name, and every command derives the phext
+filename from `.ocbox.json`. After adoption, context/start/exec
+addressed a fresh empty `<oldname>.phext` while the teleported
+phext sat untouched. (This is exactly what Emise's ~150 B
+post-teleport context measurements were reading.) Fix: adoption now
+rewrites `.ocbox.json`'s `project` too — the briefing's "local
+project renamed" is finally true of all three records.
+
+**Harness fix:** the five suite-verifier `_ensure_daemon` copies
+(byte-identical modulo phext name) carried the same probe-race;
+all five now use the gated spawn. This mattered in practice — see
+the flake record below.
+
+**Verification, all on the final binary:**
+- The Layer 6 deterministic repro (3 s delayed `share`): OLD —
+  rc=1 after 121.5 s, healthy daemon killed, orphan + scratch dir
+  left. NEW — rc=0 in 10.3 s, no stderr, zero leftovers.
+- Genuine wedge (SIGSTOP'd daemon): recovery works on both the
+  between-commands path (next `exec` recovers in ~63 s and lands)
+  and the mid-session path (a stalled `toc` recovers + retries in
+  ~63 s; post-recovery write/read verified). The 63 s is one 60 s
+  fuse plus respawn — honesty over speed: the fuse only burns when
+  a daemon is truly not answering.
+- Trivial cycles: 3× start→exec→stop→context with no wedge events;
+  mid-session `status` reports `sq daemon: running (pid N,
+  recorded)`; after stop+context the store has NO daemon.
+- Teleport of the real stress phext (idle box): rc=0 in ~1 s,
+  integrity OK, 166 streams verified, nothing left running.
+
+**Detector verdict — the claim stands, and now it's earned.**
+`tests/change_detection.sh` (7/7): at small scale, an out-of-band
+INSERT and an out-of-band UPDATE (raw `sq` only, saved, raw daemon
+shut down) are BOTH named by the next `context`. At stress scale,
+the no-change `context` on the teleported 5,198,797 B stress phext
+measures **1,001 B of output and 4 channel ops** (warm-up toc, save,
+toc, checkpoint pull) — the Layer 5 figure reproduced EXACTLY, once
+the adoption bug stopped pointing the measurement at an empty file.
+Honest footnotes: a cold store adds one `share` spawn invocation
+before the 4 ops; the baseline (first) context on this phext costs
+a full hash pass, as Layer 5 recorded. After one out-of-band INSERT
+at stress scale, `context` reports **exactly that one coordinate**
+(`2.1.1/3.1.1/900.1.1`) — no false positives across 251 scrolls,
+so per-scroll content is byte-stable through SQ load/save
+round-trips. Residual boundary (SQ's model, documented not fixed):
+`context` opens with `save()` through the store's daemon, whose
+memory is authoritative — a phext *file* edited directly on disk
+while a session daemon is live can be overwritten by that daemon's
+next save. Changes driven through the channel (raw sq), or made
+while no session daemon is live, are fully detected, as tested.
+
+**Suites on the final binary:** demo PASS · stress 28/28 ·
+showcase 14/14 · teleport 10/10 · fix regressions 35/35 ·
+change detection 7/7. Post-suite census: zero `sq` processes.
+**Flake record (not hidden):** showcase failed ONCE in this layer's
+first full pass — its session ran perfectly; the suite *verifier's*
+own daemon start died with `verifier could not start the sq
+daemon` (the harness race above, 135 s run). The harness fix
+followed; showcase then passed 14/14 in 21 s, and demo/teleport/
+stress were re-run green after the harness change (their second
+consecutive green run on the final writer). No other flakes.
