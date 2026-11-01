@@ -91,6 +91,14 @@ Beyond the demo, three more recorded runs live in this repo:
 - **Teleportation** — [`demo/teleport.sh`](demo/teleport.sh) →
   [`demo/TELEPORT-TRANSCRIPT.txt`](demo/TELEPORT-TRANSCRIPT.txt): see
   "State teleportation" below. 10/10 checks pass.
+- **Live cross-machine relay (2026-11-01)** —
+  [`demo/LIVE-TELEPORT-TRANSCRIPT.txt`](demo/LIVE-TELEPORT-TRANSCRIPT.txt):
+  the same demo run for real across three machines — a session born on a
+  cloud VM, teleported to aletheia-core (SQ 0.6.0), continued there,
+  teleported to Rock Mountain (SQ 0.5.6), continued there, and brought
+  home. One phext the whole way: 3,215 B → 5,856 B → 8,357 B, SHA-256
+  verified at every hop; the final artifact is
+  [`demo/live-relay.phext`](demo/live-relay.phext).
 
 ## Architecture
 

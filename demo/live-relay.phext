@@ -1,0 +1,230 @@
+relay	2
+2	s_7b7f	1
+2	s_595b	2
+2	s_8da8	3
+project: relay
+project_int: 2
+session: s_7b7f
+session_int: 1
+provider: local-shim
+image: n/a
+started: 2026-11-01T15:43:20+00:00
+workspace: /home/hatch/workspace/ocbox-phext/live-demo/.state-here/sessions/relay-s_7b7f/workspace
+exec seq=2 cmd=hostname && date -u +%Y-%m-%dT%H:%M:%SZ && uname -sr exit=0 duration_s=0.007
+exec seq=3 cmd=python3 -c "print("primes:", [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])" exit=1 duration_s=0.028
+exec seq=4 cmd=python3 -c "print(\"primes:\", [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])" exit=0 duration_s=0.028
+exec seq=5 cmd=printf "leg 0: born on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" > journey.txt && cat journey.txt exit=0 duration_s=0.007
+$ hostname && date -u +%Y-%m-%dT%H:%M:%SZ && uname -sr
+exit: 0
+stdout_bytes: 57
+stdout_sha256: 7edd144c7bf231fb427a2fedbcab26a8d4415b6e743645d74ce347a901382184
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.007
+at: 2026-11-01T15:43:20+00:00
+$ python3 -c "print("primes:", [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])"
+exit: 1
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 161
+stderr_sha256: 7c27eea5bc21b726d70fee2d2dccd9a2cbdc0b3a6dc70dbca146d032e92f12df
+stderr_encoding: utf-8
+duration_s: 0.028
+at: 2026-11-01T15:43:20+00:00
+$ python3 -c "print(\"primes:\", [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])"
+exit: 0
+stdout_bytes: 73
+stdout_sha256: 469de587048c7d7632367204b9f9b3c36eb5e8570be97d64ea07f8175dd06971
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.028
+at: 2026-11-01T15:43:31+00:00
+$ printf "leg 0: born on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" > journey.txt && cat journey.txt
+exit: 0
+stdout_bytes: 41
+stdout_sha256: c2f6b5276e0003a3dd0279562169ac175affc545e13df01a24d6c40f51d003e0
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.007
+at: 2026-11-01T15:43:31+00:00
+htch-runtime
+2026-11-01T15:43:20Z
+Linux 7.0.0-39-generic
+primes: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59]
+leg 0: born on htch-runtime at 15:43:31Z
+  File "<string>", line 1
+    print(primes:, [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])
+                ^
+SyntaxError: invalid syntax
+added: 1
++ journey.txt
+modified: 0
+deleted: 0
+
+README.md	83	0c14d356f77c6049df4993bc48174a3a123f214d08d993d22f8caa14289342a7
+journey.txt	41	c2f6b5276e0003a3dd0279562169ac175affc545e13df01a24d6c40f51d003e0
+HOME
+LC_CTYPE
+OCBOX_SHIM_HOME
+PATH
+PWD
+SHLVL
+_
+session: s_7b7f
+session_int: 1
+project_int: 2
+stopped: 2026-11-01T15:43:31+00:00
+final_seq: 5
+pre_checkpoint_checksum: 73b75ffd057f5a6d92e879f2cd3313cf
+note: checksum was taken BEFORE this checkpoint scroll was inserted
+delta_sha256: e06c45e3b5c3953fd52384caa075843050d053e09187234728f97fe544a25d54
+project: relay
+project_int: 2
+session: s_595b
+session_int: 2
+provider: local-shim
+image: n/a
+started: 2026-11-01T15:44:07+00:00
+workspace: /home/wbic16/ocbox-live/.state/sessions/relay-s_595b/workspace
+continuation_of_session: s_7b7f
+continuation_of_session_int: 1
+continuation_checkpoint_checksum: 73b75ffd057f5a6d92e879f2cd3313cf
+exec seq=2 cmd=hostname && date -u +%Y-%m-%dT%H:%M:%SZ exit=0 duration_s=0.003
+exec seq=3 cmd=printf "leg 1: received on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" >> journey.txt && cat journey.txt exit=0 duration_s=0.004
+exec seq=4 cmd=python3 -c "import hashlib; print(\"journey.txt sha256:\", hashlib.sha256(open(\"journey.txt\",\"rb\").read()).hexdigest())" exit=0 duration_s=0.014
+$ hostname && date -u +%Y-%m-%dT%H:%M:%SZ
+exit: 0
+stdout_bytes: 35
+stdout_sha256: ccdc4ffedb4d8876ff09951c7e9432b1926531722ac345f1a5aaa321bb2abc29
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.003
+at: 2026-11-01T15:44:07+00:00
+$ printf "leg 1: received on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" >> journey.txt && cat journey.txt
+exit: 0
+stdout_bytes: 46
+stdout_sha256: 7a4d17130b7566af7b4ca84671416af7c7bbb0b8424dc32e33a3530dd56c6eb8
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.004
+at: 2026-11-01T15:44:08+00:00
+$ python3 -c "import hashlib; print(\"journey.txt sha256:\", hashlib.sha256(open(\"journey.txt\",\"rb\").read()).hexdigest())"
+exit: 0
+stdout_bytes: 85
+stdout_sha256: 6c5685d7561438bb339435ee10b6beb6d4ab83073e1bb645cbc8fe79a8492b38
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.014
+at: 2026-11-01T15:44:08+00:00
+aletheia-core
+2026-11-01T15:44:07Z
+leg 1: received on aletheia-core at 15:44:08Z
+journey.txt sha256: 7a4d17130b7566af7b4ca84671416af7c7bbb0b8424dc32e33a3530dd56c6eb8
+added: 1
++ journey.txt
+modified: 0
+deleted: 0
+
+README.md	83	0c14d356f77c6049df4993bc48174a3a123f214d08d993d22f8caa14289342a7
+journey.txt	46	7a4d17130b7566af7b4ca84671416af7c7bbb0b8424dc32e33a3530dd56c6eb8
+HOME
+LC_CTYPE
+OCBOX_SHIM_HOME
+OLDPWD
+PATH
+PWD
+SHLVL
+_
+session: s_595b
+session_int: 2
+project_int: 2
+stopped: 2026-11-01T15:44:08+00:00
+final_seq: 4
+pre_checkpoint_checksum: fbc77e455acb76971d5496bb0dafa388
+note: checksum was taken BEFORE this checkpoint scroll was inserted
+delta_sha256: e9b010f150eed68f597a57571a3f5fa2123886b703e85960887db4eb0acda437
+project: relay
+project_int: 2
+session: s_8da8
+session_int: 3
+provider: local-shim
+image: n/a
+started: 2026-11-01T15:45:00+00:00
+workspace: /home/wbic16/ocbox-live/.state/sessions/relay-s_8da8/workspace
+continuation_of_session: s_595b
+continuation_of_session_int: 2
+continuation_checkpoint_checksum: fbc77e455acb76971d5496bb0dafa388
+exec seq=2 cmd=hostname && date -u +%Y-%m-%dT%H:%M:%SZ && nproc && free -g | head -2 exit=0 duration_s=0.006
+exec seq=3 cmd=printf "leg 2: received on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" >> journey.txt && cat journey.txt exit=0 duration_s=0.004
+$ hostname && date -u +%Y-%m-%dT%H:%M:%SZ && nproc && free -g | head -2
+exit: 0
+stdout_bytes: 200
+stdout_sha256: 48830e54d7156c170ace85ab342c0cc6999dffb4fd728a0f21c3a00ebc790907
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.006
+at: 2026-11-01T15:45:00+00:00
+$ printf "leg 2: received on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" >> journey.txt && cat journey.txt
+exit: 0
+stdout_bytes: 133
+stdout_sha256: 83da25c811f2715d4987f9fdcb15b2d3ef7bc951e311fb74b22259302f0b7de8
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.004
+at: 2026-11-01T15:45:00+00:00
+rock-mountain
+2026-11-01T15:45:00Z
+16
+               total        used        free      shared  buff/cache   available
+Mem:              44           2          19           0          23          42
+leg 0: born on htch-runtime at 15:43:31Z
+leg 1: received on aletheia-core at 15:44:08Z
+leg 2: received on rock-mountain at 15:45:00Z
+added: 0
+modified: 1
+* journey.txt
+deleted: 0
+
+--- diff for journey.txt ---
+--- a/journey.txt
++++ b/journey.txt
+@@ -1,2 +1,3 @@
+ leg 0: born on htch-runtime at 15:43:31Z
+ leg 1: received on aletheia-core at 15:44:08Z
++leg 2: received on rock-mountain at 15:45:00Z
+
+README.md	83	0c14d356f77c6049df4993bc48174a3a123f214d08d993d22f8caa14289342a7
+journey.txt	133	83da25c811f2715d4987f9fdcb15b2d3ef7bc951e311fb74b22259302f0b7de8
+HOME
+LC_CTYPE
+OCBOX_SHIM_HOME
+OLDPWD
+PATH
+PWD
+SHLVL
+_
+session: s_8da8
+session_int: 3
+project_int: 2
+stopped: 2026-11-01T15:45:00+00:00
+final_seq: 3
+pre_checkpoint_checksum: a24c183cacb08c728353251cd29c7283
+note: checksum was taken BEFORE this checkpoint scroll was inserted
+delta_sha256: fdfa4a30c8e965cb04282364b68bc18a47901b192df4005ba520c56e30aaa1a2

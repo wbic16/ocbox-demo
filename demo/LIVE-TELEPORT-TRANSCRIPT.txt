@@ -1,0 +1,140 @@
+=== LEG 0 — origin machine: htch-runtime (Muse VM) ===
+Created .ocbox.json — project 'relay'
+Session s_7b7f ready — project relay (int 2), session int 1
+Workspace: /home/hatch/workspace/ocbox-phext/live-demo/.state-here/sessions/relay-s_7b7f/workspace
+Phext: /home/hatch/workspace/ocbox-phext/live-demo/relay/.ocbox-phext/relay.phext
+htch-runtime
+2026-11-01T15:43:20Z
+Linux 7.0.0-39-generic
+  File "<string>", line 1
+    print(primes:, [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])
+                ^
+SyntaxError: invalid syntax
+(leg 0 continues — the failed exec above is in the phext record too, exit code and all)
+primes: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59]
+leg 0: born on htch-runtime at 15:43:31Z
+Session s_7b7f stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/live-demo/relay/.ocbox-phext/relay.phext
+--- phext after leg 0 ---
+4571a8e3f09108226af7b3f51fabeabd9b4279fd40f9eaecfee1197d12bfab9e  .ocbox-phext/relay.phext
+3215 bytes
+
+=== LEG 1 — aletheia-core (SQ 0.6.0) ===
+fresh state dir before teleport-in: 0 entries
+teleport-in: copied /home/wbic16/ocbox-live/incoming/relay.phext -> /home/wbic16/ocbox-live/relay/.ocbox-phext/relay.phext
+
+=== teleport-in: resume briefing (generated from the phext alone) ===
+project: relay (int 2)
+sessions in phext: 1
+  session s_7b7f (int 1): started 2026-11-01T15:43:20+00:00, stopped 2026-11-01T15:43:31+00:00, final_seq 5
+commands (last session s_7b7f):
+  seq 2: $ hostname && date -u +%Y-%m-%dT%H:%M:%SZ && uname -sr -> exit 0
+  seq 3: $ python3 -c "print("primes:", [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])" -> exit 1
+  seq 4: $ python3 -c "print(\"primes:\", [n for n in range(2,60) if all(n%d for d in range(2,int(n**0.5)+1))])" -> exit 0
+  seq 5: $ printf "leg 0: born on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" > journey.txt && cat journey.txt -> exit 0
+files at stop (manifest, 2 files):
+  README.md	83	0c14d356f77c6049df4993bc48174a3a123f214d08d993d22f8caa14289342a7
+  journey.txt	41	c2f6b5276e0003a3dd0279562169ac175affc545e13df01a24d6c40f51d003e0
+  diff: added: 1
+  diff: + journey.txt
+  diff: modified: 0
+  diff: deleted: 0
+checkpoint_pre_checksum: 73b75ffd057f5a6d92e879f2cd3313cf
+last_command: $ printf "leg 0: born on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" > journey.txt && cat journey.txt
+last_exit: 0
+next_session_int: 2
+next_seq_for_last_session: 6
+state rebuilt: /home/wbic16/ocbox-live/.state/state.json
+Session s_595b ready — project relay (int 2), session int 2
+Workspace: /home/wbic16/ocbox-live/.state/sessions/relay-s_595b/workspace
+Phext: /home/wbic16/ocbox-live/relay/.ocbox-phext/relay.phext
+aletheia-core
+2026-11-01T15:44:07Z
+leg 1: received on aletheia-core at 15:44:08Z
+journey.txt sha256: 7a4d17130b7566af7b4ca84671416af7c7bbb0b8424dc32e33a3530dd56c6eb8
+Session s_595b stopped. Phext record complete at /home/wbic16/ocbox-live/relay/.ocbox-phext/relay.phext
+--- phext after leg 1 ---
+0d6205419c719ef002e3fecca6675e9551352994179cf77efba8afc525ad7911  .ocbox-phext/relay.phext
+5856 bytes
+
+--- file sync between legs (the ocbox sync step): journey.txt committed back to the project, now carrying legs 0+1 ---
+leg 0: born on htch-runtime at 15:43:31Z
+leg 1: received on aletheia-core at 15:44:08Z
+--- phext pulled back from aletheia for the next hop: sha256 0d6205419c719ef002e3fecca6675e9551352994179cf77efba8afc525ad7911 expected ---
+0d6205419c719ef002e3fecca6675e9551352994179cf77efba8afc525ad7911  incoming/relay-after-aletheia.phext
+
+=== LEG 2 — rock-mountain (SQ 0.5.6) ===
+fresh state dir before teleport-in: 0 entries
+teleport-in: copied /home/wbic16/ocbox-live/incoming/relay.phext -> /home/wbic16/ocbox-live/relay/.ocbox-phext/relay.phext
+
+=== teleport-in: resume briefing (generated from the phext alone) ===
+project: relay (int 2)
+sessions in phext: 2
+  session s_7b7f (int 1): started 2026-11-01T15:43:20+00:00, stopped 2026-11-01T15:43:31+00:00, final_seq 5
+  session s_595b (int 2): started 2026-11-01T15:44:07+00:00, stopped 2026-11-01T15:44:08+00:00, final_seq 4
+commands (last session s_595b):
+  seq 2: $ hostname && date -u +%Y-%m-%dT%H:%M:%SZ -> exit 0
+  seq 3: $ printf "leg 1: received on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" >> journey.txt && cat journey.txt -> exit 0
+  seq 4: $ python3 -c "import hashlib; print(\"journey.txt sha256:\", hashlib.sha256(open(\"journey.txt\",\"rb\").read()).hexdigest())" -> exit 0
+files at stop (manifest, 2 files):
+  README.md	83	0c14d356f77c6049df4993bc48174a3a123f214d08d993d22f8caa14289342a7
+  journey.txt	46	7a4d17130b7566af7b4ca84671416af7c7bbb0b8424dc32e33a3530dd56c6eb8
+  diff: added: 1
+  diff: + journey.txt
+  diff: modified: 0
+  diff: deleted: 0
+checkpoint_pre_checksum: fbc77e455acb76971d5496bb0dafa388
+last_command: $ python3 -c "import hashlib; print(\"journey.txt sha256:\", hashlib.sha256(open(\"journey.txt\",\"rb\").read()).hexdigest())"
+last_exit: 0
+next_session_int: 3
+next_seq_for_last_session: 5
+state rebuilt: /home/wbic16/ocbox-live/.state/state.json
+Session s_8da8 ready — project relay (int 2), session int 3
+Workspace: /home/wbic16/ocbox-live/.state/sessions/relay-s_8da8/workspace
+Phext: /home/wbic16/ocbox-live/relay/.ocbox-phext/relay.phext
+rock-mountain
+2026-11-01T15:45:00Z
+16
+               total        used        free      shared  buff/cache   available
+Mem:              44           2          19           0          23          42
+leg 0: born on htch-runtime at 15:43:31Z
+leg 1: received on aletheia-core at 15:44:08Z
+leg 2: received on rock-mountain at 15:45:00Z
+Session s_8da8 stopped. Phext record complete at /home/wbic16/ocbox-live/relay/.ocbox-phext/relay.phext
+--- phext after leg 2 ---
+5abd52c9ca77373843d6b7e994238bea66aa9d088cb60cb029402f824e11ce61  .ocbox-phext/relay.phext
+8357 bytes
+
+=== RETURN — back on htch-runtime, fresh state, the phext is all that travelled home ===
+teleport-in: copied /home/hatch/workspace/ocbox-phext/live-demo/incoming/relay-final.phext -> /home/hatch/workspace/ocbox-phext/live-demo/relay/.ocbox-phext/relay.phext
+
+=== teleport-in: resume briefing (generated from the phext alone) ===
+project: relay (int 2)
+sessions in phext: 3
+  session s_7b7f (int 1): started 2026-11-01T15:43:20+00:00, stopped 2026-11-01T15:43:31+00:00, final_seq 5
+  session s_595b (int 2): started 2026-11-01T15:44:07+00:00, stopped 2026-11-01T15:44:08+00:00, final_seq 4
+  session s_8da8 (int 3): started 2026-11-01T15:45:00+00:00, stopped 2026-11-01T15:45:00+00:00, final_seq 3
+commands (last session s_8da8):
+  seq 2: $ hostname && date -u +%Y-%m-%dT%H:%M:%SZ && nproc && free -g | head -2 -> exit 0
+  seq 3: $ printf "leg 2: received on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" >> journey.txt && cat journey.txt -> exit 0
+files at stop (manifest, 2 files):
+  README.md	83	0c14d356f77c6049df4993bc48174a3a123f214d08d993d22f8caa14289342a7
+  journey.txt	133	83da25c811f2715d4987f9fdcb15b2d3ef7bc951e311fb74b22259302f0b7de8
+  diff: added: 0
+  diff: modified: 1
+  diff: * journey.txt
+  diff: deleted: 0
+  diff: --- diff for journey.txt ---
+  diff: --- a/journey.txt
+  diff: +++ b/journey.txt
+  diff: +leg 2: received on rock-mountain at 15:45:00Z
+checkpoint_pre_checksum: a24c183cacb08c728353251cd29c7283
+last_command: $ printf "leg 2: received on %s at %s\n" "$(hostname)" "$(date -u +%H:%M:%SZ)" >> journey.txt && cat journey.txt
+last_exit: 0
+next_session_int: 4
+next_seq_for_last_session: 4
+state rebuilt: /home/hatch/workspace/ocbox-phext/live-demo/.state-return/state.json
+--- final phext ---
+5abd52c9ca77373843d6b7e994238bea66aa9d088cb60cb029402f824e11ce61  .ocbox-phext/relay.phext
+8357 bytes
+
+=== cleanup === node workdirs (~/ocbox-live) removed from aletheia-core and rock-mountain after the run; the phext above is the only artifact that persists.
