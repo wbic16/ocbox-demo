@@ -1,0 +1,19 @@
+# Transient demo / runtime state — never committed.
+# (DEMO-TRANSCRIPT.txt and demo/sample/.ocbox-phext/sample.phext ARE kept,
+#  as evidence of the recorded demo run.)
+
+# Local shim state (workspaces, sequence counters, session records)
+demo/.demo-state/
+.ocbox-shim/
+
+# SQ host runtime files inside the demo phext store
+demo/sample/.ocbox-phext/sq-host.json
+demo/sample/.ocbox-phext/sq-host.log
+demo/sample/.ocbox-phext/delta-state.json
+demo/sample/.ocbox-phext/.sq/
+demo/sample/.ocbox-phext/.phext
+demo/sample/.ocbox-phext/*.phext.json
+
+# Python noise
+__pycache__/
+*.pyc

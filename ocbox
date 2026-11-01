@@ -1,0 +1,673 @@
+#!/usr/bin/env python3
+"""ocbox — local shim + phext/SQ integration (Day-One MVP).
+
+Implements the opencloudbox v0.1 CLI contract subset (init/start/exec/status/
+ls/stop/destroy) against a LOCAL shim provider — a "Session" is just a
+workspace directory on this machine — plus the integration's one new command,
+`context`, and a phext writer that records every Session into a per-project
+phext via SQ v0.6.0's HTTP API (see SPEC-v0.2.md and README.md).
+
+Architecture:
+  * Provider layer  — LocalShimProvider today. A future RealOcboxProvider
+    implements the same methods (create_workspace / run / snapshot / destroy)
+    and swaps in without touching the phext writer.
+  * PhextWriter     — the single, trusted-side writer to SQ. Session output
+    is inert data; it never gets a handle to SQ.
+
+Python 3, standard library only.
+"""
+
+import difflib
+import hashlib
+import json
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import threading
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+CHUNK = 65536  # 64 KB stdout/stderr chunks (SPEC-v0.2 §6)
+DIFF_FILE_CAP = 65536       # unified-diff only for modified text files <= this
+DIFF_SCROLL_CAP = 200_000   # total diff scroll truncation cap (chars)
+
+REG_PROJ_COORD = "1.1.1/1.1.1/1.1.1"   # project registry (project int 1 reserved)
+REG_SESS_COORD = "1.1.1/1.1.2/1.1.1"   # session registry
+
+CLS = {"meta": 1, "transcript": 2, "stdout": 3, "stderr": 4,
+       "diff": 5, "manifest": 6, "env": 7, "checkpoint": 8}
+
+EXCLUDE_DIRS = {".git", "__pycache__", "node_modules", ".ocbox-phext", ".sq"}
+EXCLUDE_FILES = {".ocbox.json"}
+EXCLUDE_SUFFIXES = (".phext", ".pyc")
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def sha256_bytes(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+
+def sha256_file(p: Path) -> str:
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def coord(proj: int, sess: int, cls: int, seq: int, chunk: int = 1) -> str:
+    return f"{proj}.{sess}.1/{cls}.1.1/{seq}.1.{chunk}"
+
+
+def die(msg, code=2):
+    print(f"ocbox: error: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+# --------------------------------------------------------------------------
+# Shim state (writer state, OUTSIDE the phext — SPEC-v0.2 task definition)
+# --------------------------------------------------------------------------
+
+def shim_home() -> Path:
+    return Path(os.environ.get("OCBOX_SHIM_HOME", str(Path.home() / ".ocbox-shim")))
+
+
+class State:
+    def __init__(self):
+        self.home = shim_home()
+        self.home.mkdir(parents=True, exist_ok=True)
+        self.path = self.home / "state.json"
+        if self.path.exists():
+            self.data = json.loads(self.path.read_text())
+        else:
+            self.data = {"next_proj_int": 2, "projects": {}}
+
+    def save(self):
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self.data, indent=1))
+        tmp.replace(self.path)
+
+    def project(self, root: Path):
+        return self.data["projects"].get(str(root))
+
+
+# --------------------------------------------------------------------------
+# Provider layer
+# --------------------------------------------------------------------------
+
+class LocalShimProvider:
+    """A Session is a workspace directory under the shim home."""
+
+    name = "local-shim"
+    image = "n/a"
+
+    def __init__(self, home: Path):
+        self.home = home
+
+    def create_workspace(self, project_root: Path, project_name: str, sid: str) -> Path:
+        ws = self.home / "sessions" / f"{project_name}-{sid}" / "workspace"
+        ws.mkdir(parents=True, exist_ok=False)
+
+        def ignore(dirpath, names):
+            out = []
+            for n in names:
+                p = Path(dirpath) / n
+                if n in EXCLUDE_DIRS or n in EXCLUDE_FILES:
+                    out.append(n)
+                elif p.is_file() and n.endswith(EXCLUDE_SUFFIXES):
+                    out.append(n)
+            return out
+
+        for entry in project_root.iterdir():
+            if entry.name in EXCLUDE_DIRS or entry.name in EXCLUDE_FILES:
+                continue
+            if entry.is_dir():
+                shutil.copytree(entry, ws / entry.name, ignore=ignore)
+            elif entry.is_file() and not entry.name.endswith(EXCLUDE_SUFFIXES):
+                shutil.copy2(entry, ws / entry.name)
+        # Stash start copies of small files next to the workspace so `stop`
+        # can produce real unified diffs at pre-stop capture time.
+        startcopy = ws.parent / "startcopy"
+        for p in ws.rglob("*"):
+            if p.is_file() and p.stat().st_size <= DIFF_FILE_CAP:
+                dest = startcopy / p.relative_to(ws)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, dest)
+        return ws
+
+    def run(self, workspace: Path, command: str):
+        """Run via shell in the workspace, streaming live to our own
+        stdout/stderr while buffering both for the phext flush.
+        Returns (exit_code, stdout_bytes, stderr_bytes, duration_s)."""
+        start = time.monotonic()
+        proc = subprocess.Popen(command, shell=True, cwd=str(workspace),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        bufs = {proc.stdout: bytearray(), proc.stderr: bytearray()}
+
+        def pump(stream, dest):
+            while True:
+                chunk = stream.read1(8192) if hasattr(stream, "read1") else stream.read(8192)
+                if not chunk:
+                    break
+                bufs[stream] += chunk
+                dest.buffer.write(chunk)
+                dest.buffer.flush()
+
+        t_out = threading.Thread(target=pump, args=(proc.stdout, sys.stdout))
+        t_err = threading.Thread(target=pump, args=(proc.stderr, sys.stderr))
+        t_out.start(); t_err.start()
+        rc = proc.wait()
+        t_out.join(); t_err.join()
+        return rc, bytes(bufs[proc.stdout]), bytes(bufs[proc.stderr]), time.monotonic() - start
+
+    def snapshot(self, workspace: Path):
+        """{relpath: {sha256, size}} for every file in the workspace."""
+        snap = {}
+        for p in sorted(workspace.rglob("*")):
+            if not p.is_file():
+                continue
+            if any(part in EXCLUDE_DIRS for part in p.parts):
+                continue
+            if p.name.endswith(EXCLUDE_SUFFIXES):
+                continue
+            rel = str(p.relative_to(workspace))
+            snap[rel] = {"sha256": sha256_file(p), "size": p.stat().st_size}
+        return snap
+
+    def destroy(self, workspace: Path):
+        shutil.rmtree(workspace.parent, ignore_errors=True)
+
+
+# --------------------------------------------------------------------------
+# Phext writer (single writer, trusted side only)
+# --------------------------------------------------------------------------
+
+def sq_binary() -> Path:
+    env = os.environ.get("OCBOX_SQ_BIN")
+    if env:
+        return Path(env)
+    found = shutil.which("sq")
+    if found:
+        return Path(found)
+    return Path.home() / ".cargo" / "bin" / "sq"
+
+
+class PhextWriter:
+    def __init__(self, store_dir: Path, phext_name: str):
+        self.store = store_dir
+        self.store.mkdir(parents=True, exist_ok=True)
+        self.p = phext_name
+        self.key = os.environ.get("OCBOX_SQ_KEY")
+        self.port = None
+        self._ensure_host()
+
+    # -- sq host subprocess management ------------------------------------
+    def _port_file(self):
+        return self.store / "sq-host.json"
+
+    def _get(self, port, endpoint, params=None, timeout=3):
+        qs = urllib.parse.urlencode(params or {})
+        url = f"http://127.0.0.1:{port}/api/v2/{endpoint}" + (f"?{qs}" if qs else "")
+        req = urllib.request.Request(url)
+        if self.key:
+            req.add_header("Authorization", self.key)
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.read().decode("utf-8", "replace")
+
+    def _alive(self, port):
+        try:
+            return self._get(port, "version").strip().startswith("0.")
+        except Exception:
+            return False
+
+    def _ensure_host(self):
+        pf = self._port_file()
+        if pf.exists():
+            try:
+                info = json.loads(pf.read_text())
+                if self._alive(info["port"]):
+                    self.port = info["port"]
+                    return
+            except Exception:
+                pass
+        binary = sq_binary()
+        if not binary.exists():
+            die(f"SQ binary not found at {binary} — install sq or set OCBOX_SQ_BIN")
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        cmd = [str(binary), "host", str(port), "--data-dir", str(self.store)]
+        if self.key:
+            cmd += ["--key", self.key]
+        log = open(self.store / "sq-host.log", "ab")
+        proc = subprocess.Popen(cmd, stdout=log, stderr=log,
+                                stdin=subprocess.DEVNULL, start_new_session=True)
+        pf.write_text(json.dumps({"port": port, "pid": proc.pid,
+                                  "data_dir": str(self.store)}))
+        for _ in range(50):
+            if self._alive(port):
+                self.port = port
+                return
+            if proc.poll() is not None:
+                die(f"sq host exited early (see {self.store / 'sq-host.log'})")
+            time.sleep(0.1)
+        die(f"sq host on port {port} did not answer /api/v2/version in time")
+
+    # -- SQ operations ------------------------------------------------------
+    def _req(self, endpoint, params, body=None):
+        last = None
+        for _ in range(10):
+            try:
+                if body is None:
+                    return self._get(self.port, endpoint, params, timeout=10)
+                qs = urllib.parse.urlencode(params)
+                url = f"http://127.0.0.1:{self.port}/api/v2/{endpoint}?{qs}"
+                req = urllib.request.Request(url, data=body.encode("utf-8"),
+                                             method="POST")
+                req.add_header("Content-Type", "text/plain; charset=utf-8")
+                if self.key:
+                    req.add_header("Authorization", self.key)
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    return r.read().decode("utf-8", "replace")
+            except urllib.error.HTTPError:
+                raise
+            except Exception as e:  # connection hiccup while host warms up
+                last = e
+                time.sleep(0.2)
+        die(f"SQ request /api/v2/{endpoint} failed: {last}")
+
+    def select(self, c):
+        return self._req("select", {"p": self.p, "c": c})
+
+    def toc(self):
+        return self._req("toc", {"p": self.p})
+
+    def checksum(self):
+        return self._req("checksum", {"p": self.p}).strip()
+
+    def delta(self):
+        return self._req("delta", {"p": self.p})
+
+    def json_export(self):
+        # SQ 0.6.0's json-export does not escape tab characters inside
+        # scrolls (our registry scrolls are tab-separated), so parse
+        # leniently — strict=False allows literal control chars in strings.
+        return json.loads(self._req("json-export", {"p": self.p}), strict=False)
+
+    def insert(self, c, text):   # append
+        return self._req("insert", {"p": self.p, "c": c}, body=text)
+
+    def update(self, c, text):   # overwrite
+        return self._req("update", {"p": self.p, "c": c}, body=text)
+
+    # -- registry ------------------------------------------------------------
+    def ensure_registry(self, proj_name, proj_int, sess_str, sess_int):
+        cur = self.select(REG_PROJ_COORD)
+        line = f"{proj_name}\t{proj_int}"
+        if line not in cur.splitlines():
+            prefix = "" if (not cur or cur.endswith("\n")) else "\n"
+            self.insert(REG_PROJ_COORD, prefix + line + "\n")
+        cur = self.select(REG_SESS_COORD)
+        line = f"{proj_int}\t{sess_str}\t{sess_int}"
+        if line not in cur.splitlines():
+            prefix = "" if (not cur or cur.endswith("\n")) else "\n"
+            self.insert(REG_SESS_COORD, prefix + line + "\n")
+
+
+# --------------------------------------------------------------------------
+# Project helpers
+# --------------------------------------------------------------------------
+
+def find_project_root():
+    d = Path.cwd()
+    for cand in [d, *d.parents]:
+        if (cand / ".ocbox.json").exists():
+            return cand
+    die("no .ocbox.json found here or in any parent — run `ocbox init` first")
+
+
+def load_config(root: Path):
+    cfg = json.loads((root / ".ocbox.json").read_text())
+    name = cfg.get("project") or cfg.get("name") or root.name
+    return cfg, name
+
+
+def safe_phext_name(name: str) -> str:
+    s = re.sub(r"[^A-Za-z0-9._-]", "-", name).strip("-.")
+    return s or "project"
+
+
+def store_dir_for(root: Path, cfg) -> Path:
+    rel = cfg.get("phext_store", ".ocbox-phext")
+    p = Path(rel)
+    return p if p.is_absolute() else (root / p)
+
+
+def writer_for(root: Path, cfg, name) -> PhextWriter:
+    return PhextWriter(store_dir_for(root, cfg), safe_phext_name(name))
+
+
+def env_names(cfg):
+    names = set(os.environ.keys())
+    for key in ("env", "env_refs", "env_names"):
+        v = cfg.get(key)
+        if isinstance(v, list):
+            names.update(str(x) for x in v)
+        elif isinstance(v, dict):
+            names.update(v.keys())
+    return sorted(names)
+
+
+def get_session(state: State, root: Path, need_active=True):
+    proj = state.project(root)
+    if not proj:
+        die("no sessions for this project yet — run `ocbox start`")
+    sid = proj.get("active_sid") if need_active else (proj.get("active_sid") or proj.get("last_sid"))
+    if not sid or sid not in proj["sessions"]:
+        die("no active session — run `ocbox start`" if need_active
+            else "no session found for this project")
+    return proj, proj["sessions"][sid]
+
+
+# --------------------------------------------------------------------------
+# Commands
+# --------------------------------------------------------------------------
+
+def cmd_init(args):
+    root = Path.cwd()
+    f = root / ".ocbox.json"
+    if f.exists():
+        print(f".ocbox.json already exists for project "
+              f"{json.loads(f.read_text()).get('project', root.name)!r} — leaving it alone")
+        return
+    cfg = {"project": root.name, "env_refs": []}
+    f.write_text(json.dumps(cfg, indent=1) + "\n")
+    print(f"Created .ocbox.json — project {root.name!r}")
+
+
+def cmd_start(args):
+    root = find_project_root()
+    cfg, name = load_config(root)
+    state = State()
+    proj = state.project(root)
+    if proj and proj.get("active_sid"):
+        die(f"session {proj['active_sid']} is already active for {name!r} — stop it first")
+    if proj is None:
+        proj = {"name": name, "proj_int": state.data["next_proj_int"],
+                "next_sess_int": 1, "sessions": {}, "active_sid": None, "last_sid": None}
+        state.data["next_proj_int"] += 1
+        state.data["projects"][str(root)] = proj
+    sess_int = proj["next_sess_int"]; proj["next_sess_int"] += 1
+    sid = "s_" + os.urandom(2).hex()
+    while sid in proj["sessions"]:
+        sid = "s_" + os.urandom(2).hex()
+
+    provider = LocalShimProvider(state.home)
+    ws = provider.create_workspace(root, safe_phext_name(name), sid)
+    snapshot = provider.snapshot(ws)
+
+    sess = {"sid": sid, "sess_int": sess_int, "proj_int": proj["proj_int"],
+            "workspace": str(ws), "provider": provider.name,
+            "started": now_iso(), "stopped": None, "last_seq": 1,
+            "snapshot": snapshot, "status": "active"}
+    proj["sessions"][sid] = sess
+    proj["active_sid"] = sid
+    proj["last_sid"] = sid
+    state.save()
+
+    w = writer_for(root, cfg, name)
+    w.ensure_registry(name, proj["proj_int"], sid, sess_int)
+    meta = (f"project: {name}\nproject_int: {proj['proj_int']}\n"
+            f"session: {sid}\nsession_int: {sess_int}\n"
+            f"provider: {provider.name}\nimage: {provider.image}\n"
+            f"started: {sess['started']}\nworkspace: {ws}\n")
+    w.update(coord(proj["proj_int"], sess_int, CLS["meta"], 1), meta)
+    w.update(coord(proj["proj_int"], sess_int, CLS["env"], 1),
+             "\n".join(env_names(cfg)) + "\n")
+    print(f"Session {sid} ready — project {name} (int {proj['proj_int']}), "
+          f"session int {sess_int}")
+    print(f"Workspace: {ws}")
+    print(f"Phext: {store_dir_for(root, cfg) / (safe_phext_name(name) + '.phext')}")
+
+
+def cmd_exec(args):
+    if not args:
+        die("usage: ocbox exec <command...>")
+    command = " ".join(args)
+    root = find_project_root()
+    cfg, name = load_config(root)
+    state = State()
+    proj, sess = get_session(state, root)
+    provider = LocalShimProvider(state.home)
+    rc, out_b, err_b, dur = provider.run(Path(sess["workspace"]), command)
+    sess["last_seq"] += 1
+    seq = sess["last_seq"]
+    state.save()
+
+    pi, si = sess["proj_int"], sess["sess_int"]
+    w = writer_for(root, cfg, name)
+    w.update(coord(pi, si, CLS["transcript"], seq),
+             f"$ {command}\nexit: {rc}\nduration_s: {dur:.3f}\nat: {now_iso()}\n")
+    out = out_b.decode("utf-8", "replace")
+    for i in range(0, len(out), CHUNK):
+        w.update(coord(pi, si, CLS["stdout"], seq, i // CHUNK + 1), out[i:i + CHUNK])
+    err = err_b.decode("utf-8", "replace")
+    if err:
+        for i in range(0, len(err), CHUNK):
+            w.update(coord(pi, si, CLS["stderr"], seq, i // CHUNK + 1), err[i:i + CHUNK])
+    w.insert(coord(pi, si, CLS["meta"], 1),
+             f"exec seq={seq} cmd={command} exit={rc} duration_s={dur:.3f}\n")
+    return rc
+
+
+def cmd_status(args):
+    root = find_project_root()
+    cfg, name = load_config(root)
+    state = State()
+    proj = state.project(root)
+    print(f"Project: {name}" + (f" (int {proj['proj_int']})" if proj else ""))
+    print(f"Phext store: {store_dir_for(root, cfg)}")
+    if not proj or not proj["sessions"]:
+        print("Sessions: none")
+        return
+    sid = proj.get("active_sid") or proj.get("last_sid")
+    s = proj["sessions"][sid]
+    print(f"Session: {s['sid']} (int {s['sess_int']}) — {s['status']}")
+    print(f"Workspace: {s['workspace']}")
+    print(f"Started: {s['started']}  Stopped: {s['stopped']}  Last seq: {s['last_seq']}")
+
+
+def cmd_ls(args):
+    state = State()
+    if not state.data["projects"]:
+        print("No sessions.")
+        return
+    for root_str, proj in state.data["projects"].items():
+        for sid, s in proj["sessions"].items():
+            print(f"{sid}\t{proj['name']}\tsession_int={s['sess_int']}\t{s['status']}"
+                  f"\tstarted={s['started']}\t{root_str}")
+
+
+def cmd_stop(args):
+    root = find_project_root()
+    cfg, name = load_config(root)
+    state = State()
+    proj, sess = get_session(state, root)
+    if sess["status"] != "active":
+        die(f"session {sess['sid']} is not active (status: {sess['status']})")
+    ws = Path(sess["workspace"])
+    pi, si = sess["proj_int"], sess["sess_int"]
+    w = writer_for(root, cfg, name)
+
+    # --- pre-stop capture, while the Session is still live (SPEC-v0.2 §3) ---
+    # Unified diffs need the start contents, which the provider kept in the
+    # sibling "startcopy" only if present; hash-level diff always available.
+    diff_text, current = build_diff_with_unified(sess, ws)
+    w.update(coord(pi, si, CLS["diff"], 1), diff_text)
+    manifest = "".join(f"{rel}\t{current[rel]['size']}\t{current[rel]['sha256']}\n"
+                       for rel in sorted(current))
+    w.update(coord(pi, si, CLS["manifest"], 1), manifest)
+    pre_checksum = w.checksum()
+    try:
+        delta_map = w.delta()
+    except SystemExit:
+        raise
+    except Exception:
+        delta_map = "(delta fetch failed)"
+    ckpt = (f"session: {sess['sid']}\nsession_int: {si}\nproject_int: {pi}\n"
+            f"stopped: {now_iso()}\nfinal_seq: {sess['last_seq']}\n"
+            f"pre_checkpoint_checksum: {pre_checksum}\n"
+            f"note: checksum was taken BEFORE this checkpoint scroll was inserted\n"
+            f"delta_sha256: {sha256_bytes(delta_map.encode('utf-8', 'replace'))}\n")
+    w.update(coord(pi, si, CLS["checkpoint"], 1), ckpt)
+
+    sess["status"] = "stopped"
+    sess["stopped"] = now_iso()
+    proj["active_sid"] = None
+    state.save()
+    print(f"Session {sess['sid']} stopped. Phext record complete at "
+          f"{store_dir_for(root, cfg) / (safe_phext_name(name) + '.phext')}")
+
+
+def build_diff_with_unified(sess, workspace: Path):
+    """Diff vs the start snapshot. If the provider stashed start copies of
+    small text files (startcopy dir next to the state), produce real unified
+    diffs for modified files under the caps; otherwise fall back to a
+    hash-level record."""
+    snapshot = sess["snapshot"]
+    provider = LocalShimProvider(shim_home())
+    current = provider.snapshot(workspace)
+    added = sorted(set(current) - set(snapshot))
+    deleted = sorted(set(snapshot) - set(current))
+    modified = sorted(k for k in set(current) & set(snapshot)
+                      if current[k]["sha256"] != snapshot[k]["sha256"])
+    startcopy = Path(sess["workspace"]).parent / "startcopy"
+    parts = [f"added: {len(added)}", *[f"+ {p}" for p in added],
+             f"modified: {len(modified)}", *[f"* {p}" for p in modified],
+             f"deleted: {len(deleted)}", *[f"- {p}" for p in deleted], ""]
+    used = sum(len(p) for p in parts)
+    for rel in modified:
+        old_file = startcopy / rel
+        new_file = workspace / rel
+        header = f"--- diff for {rel} ---"
+        if (old_file.exists() and snapshot[rel]["size"] <= DIFF_FILE_CAP
+                and current[rel]["size"] <= DIFF_FILE_CAP):
+            try:
+                old = old_file.read_text().splitlines(keepends=True)
+                new = new_file.read_text().splitlines(keepends=True)
+            except (UnicodeDecodeError, OSError):
+                old = new = None
+            if old is not None:
+                d = "".join(difflib.unified_diff(old, new,
+                                                 fromfile=f"a/{rel}", tofile=f"b/{rel}"))
+                if used + len(d) > DIFF_SCROLL_CAP:
+                    parts.append(header + "\n(diff truncated: scroll cap reached)\n")
+                    break
+                parts.append(header + "\n" + d)
+                used += len(d)
+                continue
+        parts.append(header + "\n"
+                     f"  sha256 at start: {snapshot[rel]['sha256']} ({snapshot[rel]['size']} bytes)\n"
+                     f"  sha256 now:      {current[rel]['sha256']} ({current[rel]['size']} bytes)\n")
+    return "\n".join(parts) + "\n", current
+
+
+def cmd_destroy(args):
+    root = find_project_root()
+    cfg, name = load_config(root)
+    state = State()
+    proj, sess = get_session(state, root, need_active=False)
+    provider = LocalShimProvider(state.home)
+    provider.destroy(Path(sess["workspace"]))
+    sess["status"] = "destroyed"
+    if proj.get("active_sid") == sess["sid"]:
+        proj["active_sid"] = None
+    state.save()
+    print(f"Session {sess['sid']} workspace destroyed. Phext kept at "
+          f"{store_dir_for(root, cfg) / (safe_phext_name(name) + '.phext')}")
+
+
+def cmd_context(args):
+    root = find_project_root()
+    cfg, name = load_config(root)
+    w = writer_for(root, cfg, name)
+    print("=== toc ===")
+    print(w.toc().rstrip())
+    # Delta change detection (MVP-simplified, see README): fetch /delta, and
+    # diff per-coordinate scroll hashes from json-export against the saved
+    # delta-state file in the store dir.
+    print("\n=== delta ===")
+    try:
+        delta_raw = w.delta()
+        delta_hash = sha256_bytes(delta_raw.encode("utf-8", "replace"))
+    except SystemExit:
+        raise
+    except Exception as e:
+        delta_hash = f"(fetch failed: {e})"
+    state_file = store_dir_for(root, cfg) / "delta-state.json"
+    current = {}
+    try:
+        for item in w.json_export():
+            current[item["coord"]] = sha256_bytes(item["scroll"].encode())
+    except Exception:
+        current = {}
+    if state_file.exists() and current:
+        prev = json.loads(state_file.read_text()).get("scroll_sha256", {})
+        changed = sorted(c for c in set(current) | set(prev)
+                         if current.get(c) != prev.get(c))
+        if changed:
+            print("Coordinates changed since last context:")
+            for c in changed:
+                print(f"  {c}")
+        else:
+            print("No coordinate changes since last context.")
+    else:
+        print("No previous delta state — recording current state as baseline.")
+    state_file.write_text(json.dumps(
+        {"delta_sha256": delta_hash, "scroll_sha256": current,
+         "taken": now_iso()}, indent=1))
+    print(f"(delta sha256: {delta_hash})")
+    # Checkpoint of current/last session
+    state = State()
+    proj = state.project(root)
+    if proj and proj.get("last_sid"):
+        sess = proj["sessions"][proj["last_sid"]]
+        ck = w.select(coord(sess["proj_int"], sess["sess_int"], CLS["checkpoint"], 1))
+        if ck.strip():
+            print(f"\n=== checkpoint ({sess['sid']}) ===")
+            print(ck.rstrip())
+
+
+COMMANDS = {"init": cmd_init, "start": cmd_start, "status": cmd_status,
+            "ls": cmd_ls, "stop": cmd_stop, "destroy": cmd_destroy,
+            "context": cmd_context}
+
+
+def main(argv):
+    if len(argv) < 2 or argv[1] in ("-h", "--help", "help"):
+        print(__doc__.strip().splitlines()[0])
+        print("usage: ocbox <init|start|exec|status|ls|context|stop|destroy> [args]")
+        return 0
+    cmd, rest = argv[1], argv[2:]
+    if cmd == "exec":
+        return cmd_exec(rest)
+    fn = COMMANDS.get(cmd)
+    if not fn:
+        die(f"unknown command {cmd!r} (shim implements: init, start, exec, "
+            f"status, ls, context, stop, destroy)")
+    fn(rest)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

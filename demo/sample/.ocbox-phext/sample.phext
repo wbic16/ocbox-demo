@@ -1,0 +1,76 @@
+sample	2
+2	s_98ec	1
+project: sample
+project_int: 2
+session: s_98ec
+session_int: 1
+provider: local-shim
+image: n/a
+started: 2026-11-01T10:19:58+00:00
+workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_98ec/workspace
+exec seq=2 cmd=python3 hello.py exit=0 duration_s=0.027
+exec seq=3 cmd=python3 -m unittest -v exit=0 duration_s=0.097
+exec seq=4 cmd=python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md exit=0 duration_s=0.026
+exec seq=5 cmd=python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)" exit=3 duration_s=0.025
+$ python3 hello.py
+exit: 0
+duration_s: 0.027
+at: 2026-11-01T10:19:58+00:00
+$ python3 -m unittest -v
+exit: 0
+duration_s: 0.097
+at: 2026-11-01T10:19:59+00:00
+$ python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md
+exit: 0
+duration_s: 0.026
+at: 2026-11-01T10:19:59+00:00
+$ python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)"
+exit: 3
+duration_s: 0.025
+at: 2026-11-01T10:19:59+00:00
+hello, world
+hello from the remote session (which is really a local shim)
+test_default (test_hello.TestHello.test_default) ... ok
+test_name (test_hello.TestHello.test_name) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+something went wrong on purpose
+added: 1
++ notes.txt
+modified: 1
+* README.md
+deleted: 0
+
+--- diff for README.md ---
+--- a/README.md
++++ b/README.md
+@@ -2,3 +2,4 @@
+ 
+ A tiny repo that exists only so `run_demo.sh` has something to run a
+ session against: one program that prints, one test that passes.
++a change from inside the session
+
+README.md	176	a77d67d16e9c42a783b54d058da202e65e53fbe10363fc57db13c4cca9bd1db0
+hello.py	234	2b91f3d0e036c5e8a3d369e978f2aa5e4a588eb19b01716ed4198f6a98d537bc
+notes.txt	27	6448821d224142cf158cf17db28b6559763d99f90e1446a8ca3ab942be8a5da1
+test_hello.py	298	f4126a242c0382c86b80caccb6afdc383c8be3d3604714aebe861b7cbd91b4d2
+HOME
+LC_CTYPE
+OCBOX_DEMO_SANITIZED
+OCBOX_SHIM_HOME
+OLDPWD
+PATH
+PWD
+SHLVL
+_
+session: s_98ec
+session_int: 1
+project_int: 2
+stopped: 2026-11-01T10:19:59+00:00
+final_seq: 5
+pre_checkpoint_checksum: b78552355215975c73f3043094b03da4
+note: checksum was taken BEFORE this checkpoint scroll was inserted
+delta_sha256: 2152ec362ec535dacf1d560e39705884dfb7c76ce95c8f2eb86e34148cb9b48a
