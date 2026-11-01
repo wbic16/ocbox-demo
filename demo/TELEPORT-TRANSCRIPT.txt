@@ -1,0 +1,237 @@
+=== ocbox x phext STATE TELEPORTATION — 2026-11-01T10:33:44Z ===
+
+########## MACHINE A ##########
+$ ocbox init
+Created .ocbox.json — project 'widget'
+$ ocbox start
+Session s_3a3f ready — project widget (int 2), session int 1
+Workspace: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/shim/sessions/widget-s_3a3f/workspace
+Phext: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/widget/.ocbox-phext/widget.phext
+$ ocbox exec python3 compute.py
+sum of squares 0..999 = 332833500
+sha256 of that: 5512cd4be18169ac5f05eab3dbccaf4e53736c88cb8edbdfb7c62a2a7d00574b
+(ocbox exit: 0)
+$ ocbox exec printf 'teleport me\n' > note.txt && sha256sum note.txt
+19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9  note.txt
+(ocbox exit: 0)
+$ ocbox exec ffmpeg -nostdin -y -f lavfi -i testsrc=duration=1:size=320x240:rate=10 -pix_fmt yuv420p clip.mp4
+ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 13 (Ubuntu 13.3.0-6ubuntu2~24.04.1)
+  configuration: --prefix=/usr --extra-version= --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-pocketsphinx --disable-libcaca --disable-libmfx --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-ladspa --enable-libbluray --enable-libdvdnav --enable-libdvdread --enable-libjack --enable-libjxl --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-libplacebo --enable-frei0r --enable-sdl2 --enable-librav1e --enable-librsvg --disable-libplacebo --enable-shared
+  libavutil      60. 26.102 / 60. 26.102
+  libavcodec     62. 28.102 / 62. 28.102
+  libavformat    62. 12.102 / 62. 12.102
+  libavdevice    62.  3.102 / 62.  3.102
+  libavfilter    11. 14.102 / 11. 14.102
+  libswscale      9.  5.102 /  9.  5.102
+  libswresample   6.  3.102 /  6.  3.102
+Input #0, lavfi, from 'testsrc=duration=1:size=320x240:rate=10':
+  Duration: N/A, start: 0.000000, bitrate: N/A
+  Stream #0:0: Video: wrapped_avframe, rgb24, 320x240 [SAR 1:1 DAR 4:3], 10 fps, 10 tbr, 10 tbn
+Stream mapping:
+  Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (libx264))
+[libx264 @ 0x59b5b5349b40] using SAR=1/1
+[libx264 @ 0x59b5b5349b40] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x59b5b5349b40] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0x59b5b5349b40] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=10 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'clip.mp4':
+  Metadata:
+    encoder         : Lavf62.12.102
+  Stream #0:0: Video: h264 (avc1 / 0x31637661), yuv420p(tv, progressive), 320x240 [SAR 1:1 DAR 4:3], q=2-31, 10 fps, 10240 tbn
+    Metadata:
+      encoder         : Lavc62.28.102 libx264
+    Side data:
+      CPB properties: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+[out#0/mp4 @ 0x59b5b5349240] video:6KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 15.670233%
+frame=   10 fps=0.0 q=-1.0 Lsize=       7KiB time=00:00:00.80 bitrate=  73.5kbits/s speed=36.5x elapsed=0:00:00.02    
+[libx264 @ 0x59b5b5349b40] frame I:1     Avg QP:13.70  size:  3309
+[libx264 @ 0x59b5b5349b40] frame P:3     Avg QP:17.05  size:   555
+[libx264 @ 0x59b5b5349b40] frame B:6     Avg QP:14.00  size:   115
+[libx264 @ 0x59b5b5349b40] consecutive B-frames: 20.0%  0.0%  0.0% 80.0%
+[libx264 @ 0x59b5b5349b40] mb I  I16..4: 69.0%  4.7% 26.3%
+[libx264 @ 0x59b5b5349b40] mb P  I16..4:  3.0%  1.3%  1.6%  P16..4:  7.6%  2.7%  2.3%  0.0%  0.0%    skip:81.6%
+[libx264 @ 0x59b5b5349b40] mb B  I16..4:  1.1%  0.3%  0.0%  B16..8:  6.1%  0.9%  0.1%  direct: 0.7%  skip:90.8%  L0:48.8% L1:44.9% BI: 6.2%
+[libx264 @ 0x59b5b5349b40] 8x8 transform intra:8.5% inter:23.1%
+[libx264 @ 0x59b5b5349b40] coded y,uvDC,uvAC intra: 14.0% 40.7% 25.9% inter: 1.4% 3.9% 1.9%
+[libx264 @ 0x59b5b5349b40] i16 v,h,dc,p: 77%  7%  7%  9%
+[libx264 @ 0x59b5b5349b40] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 87%  4%  8%  2%  0%  0%  0%  0%  0%
+[libx264 @ 0x59b5b5349b40] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 47% 29% 16%  2%  1%  2%  0%  2%  0%
+[libx264 @ 0x59b5b5349b40] i8c dc,h,v,p: 37% 19% 37%  7%
+[libx264 @ 0x59b5b5349b40] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0x59b5b5349b40] ref P L0: 82.7%  6.9% 10.4%
+[libx264 @ 0x59b5b5349b40] ref B L0: 86.2%  9.7%  4.1%
+[libx264 @ 0x59b5b5349b40] ref B L1: 97.0%  3.0%
+[libx264 @ 0x59b5b5349b40] kb/s:45.34
+(ocbox exit: 0)
+$ ocbox exec cat data.txt
+seed data for the teleport demo project
+(ocbox exit: 0)
+$ ocbox stop
+Session s_3a3f stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/widget/.ocbox-phext/widget.phext
+Machine A phext: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/A/widget/.ocbox-phext/widget.phext
+Machine A phext SHA-256: faaaabe8c2ba151bed9661697e4c3add46ae2ba8bd096f542c3f5760b9d662c0
+Machine A phext size: 8019 bytes
+--- recording machine A's facts (direct SQ reads, for later assertions) ---
+{
+ "session": "s_3a3f",
+ "commands": [
+  [
+   2,
+   "$ python3 compute.py",
+   "0"
+  ],
+  [
+   3,
+   "$ printf 'teleport me\\n' > note.txt && sha256sum note.txt",
+   "0"
+  ],
+  [
+   4,
+   "$ ffmpeg -nostdin -y -f lavfi -i testsrc=duration=1:size=320x240:rate=10 -pix_fmt yuv420p clip.mp4",
+   "0"
+  ],
+  [
+   5,
+   "$ cat data.txt",
+   "0"
+  ]
+ ],
+ "checkpoint_pre_checksum": "3fbce7064c35a41b126a7576e2e84e4f",
+ "final_seq": "5",
+ "manifest": {
+  "README.md": "8f864321382ebc9f64e017e5a5c1278f68ae2c0461c4071778b61d0cd1849171",
+  "clip.mp4": "863b906d2bb552814957ca8cffc5b7eefeca1f2a54895d0c565408ed87a412d6",
+  "compute.py": "4d8a9d092d9fe22820c9c5fc8b2814359927e1689cc63d3b9bdc698775887caa",
+  "data.txt": "fbfc8e97536f5f98ab786722bc2f59ce9f1c213d5a23bbe6a5acec0279421a33",
+  "note.txt": "19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9"
+ }
+}
+
+########## THE JUMP ##########
+Machine B starts from NOTHING but the project repo (re-synced from
+source, as opencloudbox would) plus the single .phext file.
+--- machine B files BEFORE the jump (project source only) ---
+/home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/README.md
+/home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/compute.py
+/home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/data.txt
+B shim home: absent — no state.json, no workspaces
+--- machine B files AFTER the jump (exactly one file crossed) ---
+/home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/received/widget.phext
+/home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/README.md
+/home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/compute.py
+/home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/data.txt
+A phext SHA-256:      faaaabe8c2ba151bed9661697e4c3add46ae2ba8bd096f542c3f5760b9d662c0
+B received SHA-256:   faaaabe8c2ba151bed9661697e4c3add46ae2ba8bd096f542c3f5760b9d662c0
+JUMP INTEGRITY: MATCH
+
+########## MACHINE B ##########
+$ ocbox init
+Created .ocbox.json — project 'widget'
+$ ocbox teleport-in /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/received/widget.phext
+teleport-in: copied /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/received/widget.phext -> /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/.ocbox-phext/widget.phext
+
+=== teleport-in: resume briefing (generated from the phext alone) ===
+project: widget (int 2)
+sessions in phext: 1
+  session s_3a3f (int 1): started 2026-11-01T10:33:44+00:00, stopped 2026-11-01T10:33:46+00:00, final_seq 5
+commands (last session s_3a3f):
+  seq 2: $ python3 compute.py -> exit 0
+  seq 3: $ printf 'teleport me\n' > note.txt && sha256sum note.txt -> exit 0
+  seq 4: $ ffmpeg -nostdin -y -f lavfi -i testsrc=duration=1:size=320x240:rate=10 -pix_fmt yuv420p clip.mp4 -> exit 0
+  seq 5: $ cat data.txt -> exit 0
+files at stop (manifest, 5 files):
+  README.md	299	8f864321382ebc9f64e017e5a5c1278f68ae2c0461c4071778b61d0cd1849171
+  clip.mp4	7352	863b906d2bb552814957ca8cffc5b7eefeca1f2a54895d0c565408ed87a412d6
+  compute.py	274	4d8a9d092d9fe22820c9c5fc8b2814359927e1689cc63d3b9bdc698775887caa
+  data.txt	40	fbfc8e97536f5f98ab786722bc2f59ce9f1c213d5a23bbe6a5acec0279421a33
+  note.txt	12	19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9
+  diff: added: 2
+  diff: + clip.mp4
+  diff: + note.txt
+  diff: modified: 0
+  diff: deleted: 0
+checkpoint_pre_checksum: 3fbce7064c35a41b126a7576e2e84e4f
+last_command: $ cat data.txt
+last_exit: 0
+next_session_int: 2
+next_seq_for_last_session: 6
+state rebuilt: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/shim/state.json
+$ ocbox context   (baseline at the teleport point)
+(context ran with state rebuilt from the phext only; toc/delta baseline recorded)
+--- CONTINUATION on machine B ---
+Project files came from the repo (re-copy above). Session state —
+registry, counters, checkpoint chain — came from the phext alone.
+$ ocbox start   (continuation session)
+Session s_7f5b ready — project widget (int 2), session int 2
+Workspace: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/shim/sessions/widget-s_7f5b/workspace
+Phext: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/.ocbox-phext/widget.phext
+$ ocbox exec printf 'teleport me\n' > note.txt && sha256sum note.txt
+19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9  note.txt
+(ocbox exit: 0)
+$ ocbox stop
+Session s_7f5b stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/.ocbox-phext/widget.phext
+$ ocbox context   (what changed since the teleport point?)
+=== toc ===
+* 1.1.1/1.1.1/1.1.1: widget	2...
+* 1.1.1/1.1.2/1.1.1: 2	s_3a3f	1...
+* 2.1.1/1.1.1/1.1.1: project: widget...
+* 2.1.1/2.1.1/2.1.1: $ python3 compute.py...
+* 2.1.1/2.1.1/3.1.1: $ printf 'teleport me\n' > note.txt && sha256sum note.txt...
+* 2.1.1/2.1.1/4.1.1: $ ffmpeg -nostdin -y -f lavfi -i testsrc=duration=1:size=320x240:rate=10 -pix_fmt yuv420p clip.mp4...
+* 2.1.1/2.1.1/5.1.1: $ cat data.txt...
+* 2.1.1/3.1.1/2.1.1: sum of squares 0..999 = 332833500...
+* 2.1.1/3.1.1/3.1.1: 19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9  note.txt...
+* 2.1.1/3.1.1/5.1.1: seed data for the teleport demo project...
+* 2.1.1/4.1.1/4.1.1: ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers...
+* 2.1.1/5.1.1/1.1.1: added: 2...
+* 2.1.1/6.1.1/1.1.1: README.md	299	8f864321382ebc9f64e017e5a5c1278f68ae2c0461c4071778b61d0cd1849171...
+* 2.1.1/7.1.1/1.1.1: HOME...
+* 2.1.1/8.1.1/1.1.1: session: s_3a3f...
+* 2.2.1/1.1.1/1.1.1: project: widget...
+* 2.2.1/2.1.1/2.1.1: $ printf 'teleport me\n' > note.txt && sha256sum note.txt...
+* 2.2.1/3.1.1/2.1.1: 19b7481ac1164a910ea973eeecd8c2f3871bff60f27a98a51e927c6d958d15f9  note.txt...
+* 2.2.1/5.1.1/1.1.1: added: 1...
+* 2.2.1/6.1.1/1.1.1: README.md	299	8f864321382ebc9f64e017e5a5c1278f68ae2c0461c4071778b61d0cd1849171...
+* 2.2.1/7.1.1/1.1.1: HOME...
+* 2.2.1/8.1.1/1.1.1: session: s_7f5b...
+
+=== delta ===
+Coordinates changed since last context:
+  1.1.1/1.1.2/1.1.1
+  2.2.1/1.1.1/1.1.1
+  2.2.1/2.1.1/2.1.1
+  2.2.1/3.1.1/2.1.1
+  2.2.1/5.1.1/1.1.1
+  2.2.1/6.1.1/1.1.1
+  2.2.1/7.1.1/1.1.1
+  2.2.1/8.1.1/1.1.1
+(delta sha256: 8e3279116b667d16eb4f7bc44afa8866970dfee46afcda010db9b0967db96afd)
+
+=== checkpoint (s_7f5b) ===
+session: s_7f5b
+session_int: 2
+project_int: 2
+stopped: 2026-11-01T10:33:47+00:00
+final_seq: 2
+pre_checkpoint_checksum: 027a79a3788ada1aa18a11bd9f9e0dab
+note: checksum was taken BEFORE this checkpoint scroll was inserted
+delta_sha256: 6d49a7331bd50a49c277385c0af61619fcf4e60a5e4dbb213bdd6c742dd77afa
+
+=== VERIFICATION (direct SQ reads on machine B's phext) ===
+PASS  briefing commands == machine A commands  4 commands
+PASS  briefing last command + exit match A  
+PASS  briefing file list match A manifest  ['README.md', 'clip.mp4', 'compute.py', 'data.txt', 'note.txt']
+PASS  briefing checkpoint checksum == A checkpoint  
+PASS  session 2 meta quotes session 1 id + checkpoint checksum  of s_3a3f, sum 3fbce7064c35a41b
+PASS  registry now holds both sessions  2	s_3a3f	1 | 2	s_7f5b	2 | 
+PASS  session 2 lanes exist  7 coords
+PASS  continuation recreated note.txt with A's manifest hash  19b7481ac1164a91
+PASS  note.txt content hash is the known content  
+PASS  context delta since teleport = continuation coords only  8 changed coords
+A phext sha256 (pre-jump): faaaabe8c2ba151bed9661697e4c3add46ae2ba8bd096f542c3f5760b9d662c0
+TELEPORT RESULT: 10/10 PASS
+
+Machine B phext after continuation: /home/hatch/workspace/ocbox-phext/demo/.teleport-state/B/widget/.ocbox-phext/widget.phext
+SHA-256: 8e3279116b667d16eb4f7bc44afa8866970dfee46afcda010db9b0967db96afd
+Size: 9663 bytes (A's file was 8019 bytes)
+=== teleport complete (verification rc=0) ===

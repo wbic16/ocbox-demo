@@ -1,0 +1,777 @@
+showcase	2
+2	s_f22e	1
+project: showcase
+project_int: 2
+session: s_f22e
+session_int: 1
+provider: local-shim
+image: n/a
+started: 2026-11-01T10:33:32+00:00
+workspace: /home/hatch/workspace/ocbox-phext/demo/.showcase-state/shim/sessions/showcase-s_f22e/workspace
+exec seq=2 cmd=ffmpeg -y -f lavfi -i testsrc2=duration=6:size=640x360:rate=30 -f lavfi -i sine=frequency=440:duration=6 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest out.mp4 exit=0 duration_s=1.934
+exec seq=3 cmd=ffprobe -v error -show_format -show_streams -of json out.mp4 exit=0 duration_s=0.179
+exec seq=4 cmd=ffprobe -v error -show_format -show_streams -of json out.mp4 > probe_out.json exit=0 duration_s=0.101
+exec seq=5 cmd=ffmpeg -y -i out.mp4 -vf scale=320:-2 -c:v libvpx -b:v 300k -c:a libopus clip.webm exit=0 duration_s=2.943
+exec seq=6 cmd=ffprobe -v error -show_format -show_streams -of json clip.webm exit=0 duration_s=0.221
+exec seq=7 cmd=jq . probe_out.json exit=0 duration_s=0.010
+exec seq=8 cmd=printf '{not json' > bad.json; jq . bad.json exit=5 duration_s=0.006
+exec seq=9 cmd=sqlite3 media.db "CREATE TABLE media(name TEXT, bytes INTEGER, duration REAL); INSERT INTO media VALUES('out.mp4', $(stat -c%s out.mp4), $(jq -r .format.duration probe_out.json)); INSERT INTO media VALUES('clip.webm', $(stat -c%s clip.webm), $(jq -r .format.duration probe_out.json));" exit=0 duration_s=0.159
+exec seq=10 cmd=sqlite3 media.db "SELECT name, bytes, duration FROM media ORDER BY name;" exit=0 duration_s=0.004
+exec seq=11 cmd=git init -q && git config user.email demo@example.com && git config user.name 'Ocbox Demo' && git add -A && git commit -qm 'showcase session work' exit=0 duration_s=0.087
+exec seq=12 cmd=git log --oneline exit=0 duration_s=0.004
+exec seq=13 cmd=rg printf hello.c exit=0 duration_s=0.010
+exec seq=14 cmd=rg zzz_no_match_zzz hello.c exit=1 duration_s=0.005
+exec seq=15 cmd=mkdir -p logs && cp probe_out.json logs/ && tar -czf media.tar.gz out.mp4 clip.webm && tar -tzf media.tar.gz exit=0 duration_s=0.069
+exec seq=16 cmd=zip -q logs.zip logs/probe_out.json && unzip -l logs.zip exit=0 duration_s=0.014
+exec seq=17 cmd=gcc -O2 -o hello hello.c && ./hello exit=0 duration_s=0.150
+exec seq=18 cmd=node -e "console.log(JSON.stringify({tool: 'node', value: 6 * 7}))" exit=0 duration_s=0.164
+exec seq=19 cmd=openssl dgst -sha256 out.mp4 && openssl rand -base64 24 exit=0 duration_s=0.034
+exec seq=20 cmd=python3 -m http.server 18799 --bind 127.0.0.1 >/dev/null 2>&1 & SRV=$!; sleep 1; curl -s http://127.0.0.1:18799/hello.txt; RC=$?; kill $SRV 2>/dev/null; exit $RC exit=0 duration_s=1.099
+$ ffmpeg -y -f lavfi -i testsrc2=duration=6:size=640x360:rate=30 -f lavfi -i sine=frequency=440:duration=6 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest out.mp4
+exit: 0
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 5658
+stderr_sha256: 8b00fd6369a77bc9f2fc678888fd7fb62976b52c6603fb39a90ddc45a3b37cd9
+stderr_encoding: utf-8
+duration_s: 1.934
+at: 2026-11-01T10:33:34+00:00
+$ ffprobe -v error -show_format -show_streams -of json out.mp4
+exit: 0
+stdout_bytes: 4320
+stdout_sha256: b60ded75429f02dd88caf02d490ae7ceec3c36cc8431c940826b14db9e13c034
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.179
+at: 2026-11-01T10:33:34+00:00
+$ ffprobe -v error -show_format -show_streams -of json out.mp4 > probe_out.json
+exit: 0
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.101
+at: 2026-11-01T10:33:34+00:00
+$ ffmpeg -y -i out.mp4 -vf scale=320:-2 -c:v libvpx -b:v 300k -c:a libopus clip.webm
+exit: 0
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 4298
+stderr_sha256: d62797ef05dc4950d400c41228b4bafa712780df79036ba3bcd14c7efc145066
+stderr_encoding: utf-8
+duration_s: 2.943
+at: 2026-11-01T10:33:38+00:00
+$ ffprobe -v error -show_format -show_streams -of json clip.webm
+exit: 0
+stdout_bytes: 3864
+stdout_sha256: 01c3325803e125a74bca1100b0856ee63ebda64b64f7a249d243799b9773bdb6
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.221
+at: 2026-11-01T10:33:38+00:00
+$ jq . probe_out.json
+exit: 0
+stdout_bytes: 3480
+stdout_sha256: 4a464ef6bdf0c2d7c8813173d68e78a0d3c556b6bb464e4426e2b71152e8f22f
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.010
+at: 2026-11-01T10:33:38+00:00
+$ printf '{not json' > bad.json; jq . bad.json
+exit: 5
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 61
+stderr_sha256: a8d415a6c27a4e1d66a6adefbfffac24ed0d4fb605ad543cba4f39e892a9fa35
+stderr_encoding: utf-8
+duration_s: 0.006
+at: 2026-11-01T10:33:39+00:00
+$ sqlite3 media.db "CREATE TABLE media(name TEXT, bytes INTEGER, duration REAL); INSERT INTO media VALUES('out.mp4', $(stat -c%s out.mp4), $(jq -r .format.duration probe_out.json)); INSERT INTO media VALUES('clip.webm', $(stat -c%s clip.webm), $(jq -r .format.duration probe_out.json));"
+exit: 0
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.159
+at: 2026-11-01T10:33:39+00:00
+$ sqlite3 media.db "SELECT name, bytes, duration FROM media ORDER BY name;"
+exit: 0
+stdout_bytes: 40
+stdout_sha256: cc0d7ba8e5501d0d62a8500d33fc8f6f6b853042aa97139c05658405968bf677
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.004
+at: 2026-11-01T10:33:39+00:00
+$ git init -q && git config user.email demo@example.com && git config user.name 'Ocbox Demo' && git add -A && git commit -qm 'showcase session work'
+exit: 0
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.087
+at: 2026-11-01T10:33:39+00:00
+$ git log --oneline
+exit: 0
+stdout_bytes: 30
+stdout_sha256: 972949fc57a7b61bbdc209a09e6634234d8055ccca1b14ff260336af32d0482d
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.004
+at: 2026-11-01T10:33:39+00:00
+$ rg printf hello.c
+exit: 0
+stdout_bytes: 55
+stdout_sha256: caf2cdd41ee9241d0c62271b3f668ccbb471a9d4d201a211d336a4bc733e22d2
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.010
+at: 2026-11-01T10:33:40+00:00
+$ rg zzz_no_match_zzz hello.c
+exit: 1
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.005
+at: 2026-11-01T10:33:40+00:00
+$ mkdir -p logs && cp probe_out.json logs/ && tar -czf media.tar.gz out.mp4 clip.webm && tar -tzf media.tar.gz
+exit: 0
+stdout_bytes: 18
+stdout_sha256: b0c02269ce60096519c28e279927d0e50270964c383c308f5db0bd3efd5c327d
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.069
+at: 2026-11-01T10:33:40+00:00
+$ zip -q logs.zip logs/probe_out.json && unzip -l logs.zip
+exit: 0
+stdout_bytes: 214
+stdout_sha256: c8de3bc5a58dbdbe27499a2eef4c5a31e0ce8e12d577ec10637dc08eb59dca32
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.014
+at: 2026-11-01T10:33:40+00:00
+$ gcc -O2 -o hello hello.c && ./hello
+exit: 0
+stdout_bytes: 28
+stdout_sha256: 6f267e09ede27a666c63e8aa422857a04f18ab7c1eb58a23ea3a92a23c94c5c8
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.150
+at: 2026-11-01T10:33:40+00:00
+$ node -e "console.log(JSON.stringify({tool: 'node', value: 6 * 7}))"
+exit: 0
+stdout_bytes: 27
+stdout_sha256: c5060f1178a4d4f96111168dd4fdcb2c7d6aee8f4d9633c4c9d40908efb32b1c
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.164
+at: 2026-11-01T10:33:41+00:00
+$ openssl dgst -sha256 out.mp4 && openssl rand -base64 24
+exit: 0
+stdout_bytes: 117
+stdout_sha256: 5b6d8ffdc47f284cf419285d94946fa1dbfeb66f4fc0053463afea4369261a29
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.034
+at: 2026-11-01T10:33:41+00:00
+$ python3 -m http.server 18799 --bind 127.0.0.1 >/dev/null 2>&1 & SRV=$!; sleep 1; curl -s http://127.0.0.1:18799/hello.txt; RC=$?; kill $SRV 2>/dev/null; exit $RC
+exit: 0
+stdout_bytes: 34
+stdout_sha256: 033c81364eeaf7f8b671ea86ace6f6027dde12b6129f52a3f19a9f3ce23a580f
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 1.099
+at: 2026-11-01T10:33:42+00:00
+{
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64001e",
+            "width": 640,
+            "height": 360,
+            "coded_width": 640,
+            "coded_height": 360,
+            "has_b_frames": 2,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "level": 30,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 92160,
+            "duration": "6.000000",
+            "bit_rate": "788270",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "180",
+            "extradata_size": 47,
+            "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+            },
+            "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "encoder": "Lavc62.28.102 libx264"
+            }
+        },
+        {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "mime_codec_string": "mp4a.40.2",
+            "sample_fmt": "fltp",
+            "sample_rate": "44100",
+            "channels": 1,
+            "channel_layout": "mono",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/44100",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 264600,
+            "duration": "6.000000",
+            "bit_rate": "69447",
+            "nb_frames": "260",
+            "extradata_size": 5,
+            "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+            },
+            "tags": {
+                "language": "und",
+                "handler_name": "SoundHandler"
+            }
+        }
+    ],
+    "format": {
+        "filename": "out.mp4",
+        "nb_streams": 2,
+        "nb_programs": 0,
+        "nb_stream_groups": 0,
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "start_time": "0.000000",
+        "duration": "6.000000",
+        "size": "651291",
+        "bit_rate": "868388",
+        "probe_score": 100,
+        "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf62.12.102"
+        }
+    }
+}
+{
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "vp8",
+            "codec_long_name": "On2 VP8",
+            "profile": "0",
+            "codec_type": "video",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_tag": "0x0000",
+            "mime_codec_string": "vp8",
+            "width": 320,
+            "height": 180,
+            "coded_width": 320,
+            "coded_height": 180,
+            "has_b_frames": 0,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "level": -99,
+            "color_range": "tv",
+            "field_order": "progressive",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/1000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+            },
+            "tags": {
+                "ENCODER": "Lavc62.28.102 libvpx",
+                "HANDLER_NAME": "VideoHandler",
+                "DURATION": "00:00:06.000000000"
+            }
+        },
+        {
+            "index": 1,
+            "codec_name": "opus",
+            "codec_long_name": "Opus (Opus Interactive Audio Codec)",
+            "codec_type": "audio",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_tag": "0x0000",
+            "mime_codec_string": "opus",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 1,
+            "channel_layout": "mono",
+            "bits_per_sample": 0,
+            "initial_padding": 312,
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/1000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "extradata_size": 19,
+            "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+            },
+            "tags": {
+                "ENCODER": "Lavc62.28.102 libopus",
+                "HANDLER_NAME": "SoundHandler",
+                "DURATION": "00:00:06.041000000"
+            }
+        }
+    ],
+    "format": {
+        "filename": "clip.webm",
+        "nb_streams": 2,
+        "nb_programs": 0,
+        "nb_stream_groups": 0,
+        "format_name": "matroska,webm",
+        "format_long_name": "Matroska / WebM",
+        "start_time": "0.000000",
+        "duration": "6.041000",
+        "size": "287434",
+        "bit_rate": "380644",
+        "probe_score": 100,
+        "tags": {
+            "COMPATIBLE_BRANDS": "isomiso2avc1mp41",
+            "MAJOR_BRAND": "isom",
+            "MINOR_VERSION": "512",
+            "ENCODER": "Lavf62.12.102"
+        }
+    }
+}
+{
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "h264",
+      "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+      "profile": "High",
+      "codec_type": "video",
+      "codec_tag_string": "avc1",
+      "codec_tag": "0x31637661",
+      "mime_codec_string": "avc1.64001e",
+      "width": 640,
+      "height": 360,
+      "coded_width": 640,
+      "coded_height": 360,
+      "has_b_frames": 2,
+      "sample_aspect_ratio": "1:1",
+      "display_aspect_ratio": "16:9",
+      "pix_fmt": "yuv420p",
+      "level": 30,
+      "chroma_location": "left",
+      "field_order": "progressive",
+      "is_avc": "true",
+      "nal_length_size": "4",
+      "id": "0x1",
+      "r_frame_rate": "30/1",
+      "avg_frame_rate": "30/1",
+      "time_base": "1/15360",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 92160,
+      "duration": "6.000000",
+      "bit_rate": "788270",
+      "bits_per_raw_sample": "8",
+      "nb_frames": "180",
+      "extradata_size": 47,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "non_diegetic": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0,
+        "multilayer": 0
+      },
+      "tags": {
+        "language": "und",
+        "handler_name": "VideoHandler",
+        "encoder": "Lavc62.28.102 libx264"
+      }
+    },
+    {
+      "index": 1,
+      "codec_name": "aac",
+      "codec_long_name": "AAC (Advanced Audio Coding)",
+      "profile": "LC",
+      "codec_type": "audio",
+      "codec_tag_string": "mp4a",
+      "codec_tag": "0x6134706d",
+      "mime_codec_string": "mp4a.40.2",
+      "sample_fmt": "fltp",
+      "sample_rate": "44100",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "initial_padding": 0,
+      "id": "0x2",
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/44100",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "duration_ts": 264600,
+      "duration": "6.000000",
+      "bit_rate": "69447",
+      "nb_frames": "260",
+      "extradata_size": 5,
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "non_diegetic": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0,
+        "multilayer": 0
+      },
+      "tags": {
+        "language": "und",
+        "handler_name": "SoundHandler"
+      }
+    }
+  ],
+  "format": {
+    "filename": "out.mp4",
+    "nb_streams": 2,
+    "nb_programs": 0,
+    "nb_stream_groups": 0,
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "format_long_name": "QuickTime / MOV",
+    "start_time": "0.000000",
+    "duration": "6.000000",
+    "size": "651291",
+    "bit_rate": "868388",
+    "probe_score": 100,
+    "tags": {
+      "major_brand": "isom",
+      "minor_version": "512",
+      "compatible_brands": "isomiso2avc1mp41",
+      "encoder": "Lavf62.12.102"
+    }
+  }
+}
+clip.webm|287434|6.0
+out.mp4|651291|6.0
+c8a44c5 showcase session work
+    printf("hello from C: computed = %d\n", computed);
+out.mp4
+clip.webm
+Archive:  logs.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+     4320  2026-11-01 10:33   logs/probe_out.json
+---------                     -------
+     4320                     1 file
+hello from C: computed = 42
+{"tool":"node","value":42}
+SHA2-256(out.mp4)= 56378a82cae8852093f456ebe94fbe37c6949064d2d1c150414fe0ed35a503f5
+ibvD32IwIaoKez6YK3B4sXBBm7zL0/o+
+hello from the showcase workspace
+ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 13 (Ubuntu 13.3.0-6ubuntu2~24.04.1)
+  configuration: --prefix=/usr --extra-version= --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-pocketsphinx --disable-libcaca --disable-libmfx --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-ladspa --enable-libbluray --enable-libdvdnav --enable-libdvdread --enable-libjack --enable-libjxl --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-libplacebo --enable-frei0r --enable-sdl2 --enable-librav1e --enable-librsvg --disable-libplacebo --enable-shared
+  libavutil      60. 26.102 / 60. 26.102
+  libavcodec     62. 28.102 / 62. 28.102
+  libavformat    62. 12.102 / 62. 12.102
+  libavdevice    62.  3.102 / 62.  3.102
+  libavfilter    11. 14.102 / 11. 14.102
+  libswscale      9.  5.102 /  9.  5.102
+  libswresample   6.  3.102 /  6.  3.102
+Input #0, lavfi, from 'testsrc2=duration=6:size=640x360:rate=30':
+  Duration: N/A, start: 0.000000, bitrate: N/A
+  Stream #0:0: Video: wrapped_avframe, yuv420p, 640x360 [SAR 1:1 DAR 16:9], 30 fps, 30 tbr, 30 tbn
+Input #1, lavfi, from 'sine=frequency=440:duration=6':
+  Duration: N/A, start: 0.000000, bitrate: 705 kb/s
+  Stream #1:0: Audio: pcm_s16le, 44100 Hz, mono, s16, 705 kb/s
+Stream mapping:
+  Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (libx264))
+  Stream #1:0 -> #0:1 (pcm_s16le (native) -> aac (native))
+Press [q] to stop, [?] for help
+[libx264 @ 0x616ae8007880] using SAR=1/1
+[libx264 @ 0x616ae8007880] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x616ae8007880] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0x616ae8007880] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'out.mp4':
+  Metadata:
+    encoder         : Lavf62.12.102
+  Stream #0:0: Video: h264 (avc1 / 0x31637661), yuv420p(tv, progressive), 640x360 [SAR 1:1 DAR 16:9], q=2-31, 30 fps, 15360 tbn
+    Metadata:
+      encoder         : Lavc62.28.102 libx264
+    Side data:
+      CPB properties: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+  Stream #0:1: Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, mono, fltp, 69 kb/s
+    Metadata:
+      encoder         : Lavc62.28.102 aac
+frame=   47 fps=0.0 q=29.0 size=       0KiB time=00:00:03.20 bitrate=   0.1kbits/s speed=6.37x elapsed=0:00:00.50    frame=  117 fps=116 q=29.0 size=     256KiB time=00:00:05.61 bitrate= 373.3kbits/s speed=5.58x elapsed=0:00:01.00    [out#0/mp4 @ 0x616ae8006f40] video:577KiB audio:51KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.212453%
+frame=  180 fps=128 q=-1.0 Lsize=     636KiB time=00:00:05.93 bitrate= 878.1kbits/s speed=4.21x elapsed=0:00:01.40    
+[libx264 @ 0x616ae8007880] frame I:1     Avg QP:19.47  size:  8203
+[libx264 @ 0x616ae8007880] frame P:56    Avg QP:25.82  size:  4287
+[libx264 @ 0x616ae8007880] frame B:123   Avg QP:30.86  size:  2782
+[libx264 @ 0x616ae8007880] consecutive B-frames:  4.4%  3.3% 30.0% 62.2%
+[libx264 @ 0x616ae8007880] mb I  I16..4: 37.0% 48.7% 14.3%
+[libx264 @ 0x616ae8007880] mb P  I16..4:  1.9%  5.1%  0.7%  P16..4: 10.0%  5.8%  3.7%  0.0%  0.0%    skip:72.8%
+[libx264 @ 0x616ae8007880] mb B  I16..4:  0.3%  0.7%  0.6%  B16..8: 14.4%  4.0%  0.8%  direct: 1.0%  skip:78.2%  L0:51.1% L1:43.8% BI: 5.1%
+[libx264 @ 0x616ae8007880] 8x8 transform intra:57.8% inter:35.5%
+[libx264 @ 0x616ae8007880] coded y,uvDC,uvAC intra: 24.2% 32.1% 30.7% inter: 3.1% 7.4% 6.0%
+[libx264 @ 0x616ae8007880] i16 v,h,dc,p: 79% 17%  4%  0%
+[libx264 @ 0x616ae8007880] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 11% 11% 72%  2%  1%  1%  1%  1%  1%
+[libx264 @ 0x616ae8007880] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 17% 16% 33%  9%  4%  4%  6%  6%  5%
+[libx264 @ 0x616ae8007880] i8c dc,h,v,p: 66% 12% 21%  1%
+[libx264 @ 0x616ae8007880] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0x616ae8007880] ref P L0: 55.5%  8.0% 21.9% 14.6%
+[libx264 @ 0x616ae8007880] ref B L0: 76.4% 18.7%  4.9%
+[libx264 @ 0x616ae8007880] ref B L1: 94.8%  5.2%
+[libx264 @ 0x616ae8007880] kb/s:787.35
+[aac @ 0x616ae800bc40] Qavg: 119.338
+ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 13 (Ubuntu 13.3.0-6ubuntu2~24.04.1)
+  configuration: --prefix=/usr --extra-version= --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-pocketsphinx --disable-libcaca --disable-libmfx --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-ladspa --enable-libbluray --enable-libdvdnav --enable-libdvdread --enable-libjack --enable-libjxl --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-libplacebo --enable-frei0r --enable-sdl2 --enable-librav1e --enable-librsvg --disable-libplacebo --enable-shared
+  libavutil      60. 26.102 / 60. 26.102
+  libavcodec     62. 28.102 / 62. 28.102
+  libavformat    62. 12.102 / 62. 12.102
+  libavdevice    62.  3.102 / 62.  3.102
+  libavfilter    11. 14.102 / 11. 14.102
+  libswscale      9.  5.102 /  9.  5.102
+  libswresample   6.  3.102 /  6.  3.102
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'out.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf62.12.102
+  Duration: 00:00:06.00, start: 0.000000, bitrate: 868 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(progressive), 640x360 [SAR 1:1 DAR 16:9], 788 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc62.28.102 libx264
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, mono, fltp, 69 kb/s (default)
+    Metadata:
+      handler_name    : SoundHandler
+Stream mapping:
+  Stream #0:0 -> #0:0 (h264 (native) -> vp8 (libvpx))
+  Stream #0:1 -> #0:1 (aac (native) -> opus (libopus))
+Press [q] to stop, [?] for help
+[libopus @ 0x5c73a12ce5c0] No bit rate set. Defaulting to 64000 bps.
+[libvpx @ 0x5c73a12d6680] v1.14.0
+Output #0, webm, to 'clip.webm':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf62.12.102
+  Stream #0:0(und): Video: vp8, yuv420p(tv, progressive), 320x180 [SAR 1:1 DAR 16:9], q=2-31, 300 kb/s, 30 fps, 1k tbn (default)
+    Metadata:
+      encoder         : Lavc62.28.102 libvpx
+      handler_name    : VideoHandler
+    Side data:
+      CPB properties: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+  Stream #0:1(und): Audio: opus, 48000 Hz, mono, flt, 64 kb/s (default)
+    Metadata:
+      encoder         : Lavc62.28.102 libopus
+      handler_name    : SoundHandler
+frame=   33 fps=0.0 q=22.0 size=       1KiB time=00:00:01.10 bitrate=   5.9kbits/s speed= 2.2x elapsed=0:00:00.50    frame=   72 fps= 72 q=23.0 size=       1KiB time=00:00:02.40 bitrate=   2.7kbits/s speed= 2.4x elapsed=0:00:01.00    frame=  109 fps= 73 q=24.0 size=       1KiB time=00:00:03.63 bitrate=   1.8kbits/s speed=2.42x elapsed=0:00:01.50    frame=  126 fps= 63 q=24.0 size=       1KiB time=00:00:04.20 bitrate=   1.6kbits/s speed= 2.1x elapsed=0:00:02.00    frame=  151 fps= 60 q=28.0 size=     198KiB time=00:00:05.03 bitrate= 321.6kbits/s speed=2.01x elapsed=0:00:02.50    [out#0/webm @ 0x5c73a12d4500] video:221KiB audio:56KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 1.505092%
+frame=  180 fps= 64 q=26.0 Lsize=     281KiB time=00:00:06.00 bitrate= 383.2kbits/s speed=2.13x elapsed=0:00:02.81    
+jq: parse error: Invalid numeric literal at line 1, column 5
+added: 9
++ bad.json
++ clip.webm
++ hello
++ logs.zip
++ logs/probe_out.json
++ media.db
++ media.tar.gz
++ out.mp4
++ probe_out.json
+modified: 0
+deleted: 0
+
+README.md	391	4eaf9b4d932a0c196d94302b9fdedc2ce51a72aa645434226bba9af76f88ad6c
+bad.json	9	92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016
+clip.webm	287434	b44d8667cf363b09cc81cbb636f97dc0adbc2baa5a1f465db998006695f808f9
+hello	15968	42074ff761f5f069da3699393e7a5dcfab2e34458a0368e35fe85b41ed34fd8c
+hello.c	199	13aa293a13e94b451bbe63cad8d45b9a99a01d0425e8f260137e0da231a52392
+hello.txt	34	033c81364eeaf7f8b671ea86ace6f6027dde12b6129f52a3f19a9f3ce23a580f
+logs.zip	1229	cc8370e0d88764046cfe4e8e8fe1e7b5330c09c52f3f7946669396a02fbf9767
+logs/probe_out.json	4320	b60ded75429f02dd88caf02d490ae7ceec3c36cc8431c940826b14db9e13c034
+media.db	8192	5e17efc66806683568518720933ae641f0467bce81e47635cd4739251648203d
+media.tar.gz	931468	e2869386035fb3b56d7082c3716f4d6fe2b264276850e79ded5064a6778a5930
+out.mp4	651291	56378a82cae8852093f456ebe94fbe37c6949064d2d1c150414fe0ed35a503f5
+probe_out.json	4320	b60ded75429f02dd88caf02d490ae7ceec3c36cc8431c940826b14db9e13c034
+HOME
+LC_CTYPE
+OCBOX_SHIM_HOME
+OCBOX_SHOWCASE_SANITIZED
+OLDPWD
+PATH
+PWD
+SHLVL
+_
+session: s_f22e
+session_int: 1
+project_int: 2
+stopped: 2026-11-01T10:33:43+00:00
+final_seq: 20
+pre_checkpoint_checksum: 637c4c4d49d02ab0d065c6dbbbe14672
+note: checksum was taken BEFORE this checkpoint scroll was inserted
+delta_sha256: ad99c0d5af69abde9a2e245e0a7d2cb391f32d31ff391130fee70cb8de0e7bcd

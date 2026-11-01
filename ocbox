@@ -17,12 +17,14 @@ Architecture:
 Python 3, standard library only.
 """
 
+import base64
 import difflib
 import hashlib
 import json
 import os
 import re
 import shutil
+import signal as signalmod
 import socket
 import subprocess
 import sys
@@ -75,6 +77,70 @@ def die(msg, code=2):
 
 
 # --------------------------------------------------------------------------
+# Stream encoding policy (Layer 2): a phext is *text*, a command's output
+# may not be. Per stream (stdout / stderr), per exec:
+#   * bytes decode as strict UTF-8  -> stored as text, chunked on byte
+#     boundaries backed off to character boundaries, so every scroll is
+#     <= CHUNK bytes when UTF-8 encoded and concatenating the scrolls
+#     reproduces the original bytes exactly.
+#   * anything else (binary)         -> chunk 1 is a header scroll
+#     ("ocbox:encoding=base64" + raw byte count + raw SHA-256), chunks 2..
+#     carry base64 in CHUNK-char pieces. Lossless by construction:
+#     base64-decode(concat(chunks[1:])) == original bytes.
+# The transcript scroll always records bytes / sha256 / encoding per stream.
+# --------------------------------------------------------------------------
+
+def text_chunks(data: bytes):
+    """Yield str pieces of valid-UTF-8 `data`, each <= CHUNK bytes encoded."""
+    pos = 0
+    while pos < len(data):
+        end = min(pos + CHUNK, len(data))
+        if end < len(data):
+            while True:
+                try:
+                    piece = data[pos:end].decode("utf-8")
+                    break
+                except UnicodeDecodeError:
+                    end -= 1  # back off to a character boundary
+        else:
+            piece = data[pos:end].decode("utf-8")
+        yield piece
+        pos = end
+
+
+def store_stream(w, pi, si, cls, seq, data: bytes) -> str:
+    """Write one stream's bytes into its lane. Returns the encoding used."""
+    if not data:
+        return "utf-8"  # empty stream: no scrolls, transcript records 0 bytes
+    try:
+        data.decode("utf-8")
+        enc = "utf-8"
+    except UnicodeDecodeError:
+        enc = "base64"
+    if enc == "utf-8":
+        for idx, piece in enumerate(text_chunks(data), 1):
+            w.update(coord(pi, si, cls, seq, idx), piece)
+    else:
+        header = (f"ocbox:encoding=base64\nocbox:bytes={len(data)}\n"
+                  f"ocbox:sha256={sha256_bytes(data)}\n")
+        w.update(coord(pi, si, cls, seq, 1), header)
+        b64 = base64.b64encode(data).decode("ascii")
+        for idx in range(0, len(b64), CHUNK):
+            w.update(coord(pi, si, cls, seq, idx // CHUNK + 2),
+                     b64[idx:idx + CHUNK])
+    return enc
+
+
+def parse_kv(scroll: str) -> dict:
+    out = {}
+    for line in scroll.splitlines():
+        if ": " in line:
+            k, v = line.split(": ", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+# --------------------------------------------------------------------------
 # Shim state (writer state, OUTSIDE the phext — SPEC-v0.2 task definition)
 # --------------------------------------------------------------------------
 
@@ -114,15 +180,25 @@ class LocalShimProvider:
     def __init__(self, home: Path):
         self.home = home
 
-    def create_workspace(self, project_root: Path, project_name: str, sid: str) -> Path:
+    def create_workspace(self, project_root: Path, project_name: str, sid: str,
+                         exclude_paths=()) -> Path:
         ws = self.home / "sessions" / f"{project_name}-{sid}" / "workspace"
         ws.mkdir(parents=True, exist_ok=False)
+        # Absolute paths that must never be copied into a workspace even
+        # when they live INSIDE the project tree — the shim home itself
+        # (a workspace copying its own sessions dir recurses forever;
+        # found by Layer 1 verification) and the phext store dir.
+        excl = [Path(p).resolve() for p in exclude_paths]
+
+        def excluded(p: Path) -> bool:
+            rp = p.resolve()
+            return any(rp == ex or rp.is_relative_to(ex) for ex in excl)
 
         def ignore(dirpath, names):
             out = []
             for n in names:
                 p = Path(dirpath) / n
-                if n in EXCLUDE_DIRS or n in EXCLUDE_FILES:
+                if n in EXCLUDE_DIRS or n in EXCLUDE_FILES or excluded(p):
                     out.append(n)
                 elif p.is_file() and n.endswith(EXCLUDE_SUFFIXES):
                     out.append(n)
@@ -130,6 +206,8 @@ class LocalShimProvider:
 
         for entry in project_root.iterdir():
             if entry.name in EXCLUDE_DIRS or entry.name in EXCLUDE_FILES:
+                continue
+            if excluded(entry):
                 continue
             if entry.is_dir():
                 shutil.copytree(entry, ws / entry.name, ignore=ignore)
@@ -176,11 +254,11 @@ class LocalShimProvider:
         for p in sorted(workspace.rglob("*")):
             if not p.is_file():
                 continue
-            if any(part in EXCLUDE_DIRS for part in p.parts):
+            rel = str(p.relative_to(workspace))
+            if any(part in EXCLUDE_DIRS for part in Path(rel).parts):
                 continue
             if p.name.endswith(EXCLUDE_SUFFIXES):
                 continue
-            rel = str(p.relative_to(workspace))
             snap[rel] = {"sha256": sha256_file(p), "size": p.stat().st_size}
         return snap
 
@@ -302,7 +380,23 @@ class PhextWriter:
         # SQ 0.6.0's json-export does not escape tab characters inside
         # scrolls (our registry scrolls are tab-separated), so parse
         # leniently — strict=False allows literal control chars in strings.
+        # WARNING: it also does not escape backslashes, so a scroll holding
+        # a literal "\r" (backslash-r in a recorded command line) parses
+        # back as a real carriage return: json-export is LOSSY for exact
+        # content. Use export_exact() wherever bytes matter.
         return json.loads(self._req("json-export", {"p": self.p}), strict=False)
+
+    def export_exact(self):
+        """{coord: scroll} read exactly: coordinate list from `toc`,
+        content from per-coordinate `select` (byte-faithful, unlike
+        json-export — see above)."""
+        out = {}
+        for line in self.toc().splitlines():
+            if line.startswith("* "):
+                c = line[2:].split(":", 1)[0].strip()
+                if c:
+                    out[c] = self.select(c)
+        return out
 
     def insert(self, c, text):   # append
         return self._req("insert", {"p": self.p, "c": c}, body=text)
@@ -413,7 +507,9 @@ def cmd_start(args):
         sid = "s_" + os.urandom(2).hex()
 
     provider = LocalShimProvider(state.home)
-    ws = provider.create_workspace(root, safe_phext_name(name), sid)
+    ws = provider.create_workspace(root, safe_phext_name(name), sid,
+                                   exclude_paths=[state.home,
+                                                  store_dir_for(root, cfg)])
     snapshot = provider.snapshot(ws)
 
     sess = {"sid": sid, "sess_int": sess_int, "proj_int": proj["proj_int"],
@@ -431,6 +527,21 @@ def cmd_start(args):
             f"session: {sid}\nsession_int: {sess_int}\n"
             f"provider: {provider.name}\nimage: {provider.image}\n"
             f"started: {sess['started']}\nworkspace: {ws}\n")
+    # Continuation chain: if a previous session of this project left a
+    # checkpoint in the phext (including one that arrived by teleport),
+    # quote it — session N+1's meta names session N and its checkpoint
+    # checksum, so the chain is verifiable from the phext alone.
+    prev = [s for s in proj["sessions"].values()
+            if s["sess_int"] < sess_int and s["sid"] != sid]
+    if prev:
+        prev_sess = max(prev, key=lambda s: s["sess_int"])
+        ck = w.select(coord(proj["proj_int"], prev_sess["sess_int"],
+                            CLS["checkpoint"], 1))
+        ck_sum = parse_kv(ck).get("pre_checkpoint_checksum")
+        if ck_sum:
+            meta += (f"continuation_of_session: {prev_sess['sid']}\n"
+                     f"continuation_of_session_int: {prev_sess['sess_int']}\n"
+                     f"continuation_checkpoint_checksum: {ck_sum}\n")
     w.update(coord(proj["proj_int"], sess_int, CLS["meta"], 1), meta)
     w.update(coord(proj["proj_int"], sess_int, CLS["env"], 1),
              "\n".join(env_names(cfg)) + "\n")
@@ -456,18 +567,41 @@ def cmd_exec(args):
 
     pi, si = sess["proj_int"], sess["sess_int"]
     w = writer_for(root, cfg, name)
-    w.update(coord(pi, si, CLS["transcript"], seq),
-             f"$ {command}\nexit: {rc}\nduration_s: {dur:.3f}\nat: {now_iso()}\n")
-    out = out_b.decode("utf-8", "replace")
-    for i in range(0, len(out), CHUNK):
-        w.update(coord(pi, si, CLS["stdout"], seq, i // CHUNK + 1), out[i:i + CHUNK])
-    err = err_b.decode("utf-8", "replace")
-    if err:
-        for i in range(0, len(err), CHUNK):
-            w.update(coord(pi, si, CLS["stderr"], seq, i // CHUNK + 1), err[i:i + CHUNK])
-    w.insert(coord(pi, si, CLS["meta"], 1),
-             f"exec seq={seq} cmd={command} exit={rc} duration_s={dur:.3f}\n")
-    return rc
+    sig_name = None
+    if rc < 0:  # killed by a signal: subprocess reports -signum
+        try:
+            sig_name = signalmod.Signals(-rc).name
+        except ValueError:
+            sig_name = f"SIG{-rc}"
+        print(f"ocbox: command terminated by signal {sig_name} ({-rc})",
+              file=sys.stderr)
+    transcript = f"$ {command}\nexit: {rc}\n"
+    if sig_name:
+        transcript += f"signal: {sig_name} ({-rc})\nexit_shell: {128 + (-rc)}\n"
+    transcript += (
+        f"stdout_bytes: {len(out_b)}\nstdout_sha256: {sha256_bytes(out_b)}\n"
+        f"stderr_bytes: {len(err_b)}\nstderr_sha256: {sha256_bytes(err_b)}\n"
+        f"duration_s: {dur:.3f}\nat: {now_iso()}\n")
+    w.update(coord(pi, si, CLS["transcript"], seq), transcript)
+    out_enc = store_stream(w, pi, si, CLS["stdout"], seq, out_b)
+    err_enc = store_stream(w, pi, si, CLS["stderr"], seq, err_b)
+    # Backfill the encodings into the transcript scroll now they are known.
+    transcript = transcript.replace(
+        f"stdout_sha256: {sha256_bytes(out_b)}\n",
+        f"stdout_sha256: {sha256_bytes(out_b)}\nstdout_encoding: {out_enc}\n")
+    transcript = transcript.replace(
+        f"stderr_sha256: {sha256_bytes(err_b)}\n",
+        f"stderr_sha256: {sha256_bytes(err_b)}\nstderr_encoding: {err_enc}\n")
+    w.update(coord(pi, si, CLS["transcript"], seq), transcript)
+    meta_line = f"exec seq={seq} cmd={command} exit={rc} duration_s={dur:.3f}"
+    if sig_name:
+        meta_line += f" signal={sig_name}"
+    if out_enc == "base64" or err_enc == "base64":
+        meta_line += " encoding=base64"
+    w.insert(coord(pi, si, CLS["meta"], 1), meta_line + "\n")
+    # The CLI itself exits with the wrapped command's code; a signal death
+    # is reported the way a shell reports it: 128 + signum.
+    return rc if rc >= 0 else 128 + (-rc)
 
 
 def cmd_status(args):
@@ -617,8 +751,8 @@ def cmd_context(args):
     state_file = store_dir_for(root, cfg) / "delta-state.json"
     current = {}
     try:
-        for item in w.json_export():
-            current[item["coord"]] = sha256_bytes(item["scroll"].encode())
+        for c, scroll in w.export_exact().items():
+            current[c] = sha256_bytes(scroll.encode())
     except Exception:
         current = {}
     if state_file.exists() and current:
@@ -637,34 +771,204 @@ def cmd_context(args):
         {"delta_sha256": delta_hash, "scroll_sha256": current,
          "taken": now_iso()}, indent=1))
     print(f"(delta sha256: {delta_hash})")
-    # Checkpoint of current/last session
+    # Checkpoint of current/last session. Local state is the fast path,
+    # but it is NOT required: on a teleported phext (no state.json at all)
+    # the checkpoint is found by scanning the phext itself.
+    ck_text, ck_sid = None, None
     state = State()
     proj = state.project(root)
     if proj and proj.get("last_sid"):
         sess = proj["sessions"][proj["last_sid"]]
         ck = w.select(coord(sess["proj_int"], sess["sess_int"], CLS["checkpoint"], 1))
         if ck.strip():
-            print(f"\n=== checkpoint ({sess['sid']}) ===")
-            print(ck.rstrip())
+            ck_text, ck_sid = ck, sess["sid"]
+    if ck_text is None:
+        best = None
+        for c, scroll in w.export_exact().items():
+            parts = c.split("/")
+            if len(parts) != 3:
+                continue
+            g1 = parts[0].split(".")
+            g2 = parts[1].split(".")
+            g3 = parts[2].split(".")
+            if g2[0] == str(CLS["checkpoint"]) and g3[0] == "1" and scroll.strip():
+                key = (int(g1[0]), int(g1[1]))
+                if best is None or key > best[0]:
+                    best = (key, scroll, parse_kv(scroll).get("session", "?"))
+        if best is not None:
+            ck_text, ck_sid = best[1], best[2]
+    if ck_text is not None:
+        print(f"\n=== checkpoint ({ck_sid}) ===")
+        print(ck_text.rstrip())
+
+
+COORD_RE = re.compile(r"^(\d+)\.(\d+)\.1/(\d+)\.1\.1/(\d+)\.1\.(\d+)$")
+
+
+def cmd_teleport_in(args):
+    """Rebuild writer state from a phext file alone and print a resume
+    briefing generated ONLY from phext data (Layer 4: state teleportation)."""
+    if not args:
+        die("usage: ocbox teleport-in <path-to.phext>")
+    src = Path(args[0])
+    if not src.exists():
+        die(f"teleport-in: no such file: {src}")
+    root = find_project_root()
+    cfg, name = load_config(root)
+    store = store_dir_for(root, cfg)
+    store.mkdir(parents=True, exist_ok=True)
+    dest = store / (safe_phext_name(name) + ".phext")
+    if src.resolve() != dest.resolve():
+        shutil.copy2(src, dest)
+        print(f"teleport-in: copied {src} -> {dest}")
+    else:
+        print(f"teleport-in: {dest} already in the store")
+    w = writer_for(root, cfg, name)
+    export = w.export_exact()
+
+    # --- registry (project 1, reserved) -----------------------------------
+    proj_reg = {}
+    for line in export.get(REG_PROJ_COORD, "").splitlines():
+        if "\t" in line:
+            n, i = line.split("\t", 1)
+            proj_reg[n.strip()] = int(i.strip())
+    sess_reg = []  # (proj_int, sid, sess_int)
+    for line in export.get(REG_SESS_COORD, "").splitlines():
+        parts = line.split("\t")
+        if len(parts) == 3:
+            sess_reg.append((int(parts[0]), parts[1], int(parts[2])))
+    if name in proj_reg:
+        proj_int = proj_reg[name]
+    elif len(proj_reg) == 1:
+        proj_int = next(iter(proj_reg.values()))
+    elif export:
+        die(f"teleport-in: project {name!r} not in this phext's registry "
+            f"({sorted(proj_reg) or 'empty'})")
+    else:
+        die("teleport-in: phext is empty — nothing to rebuild from")
+    my_sessions = sorted([s for s in sess_reg if s[0] == proj_int],
+                         key=lambda s: s[2])
+
+    def lane(sess_int, cls, seq=1, chunk=1):
+        return export.get(coord(proj_int, sess_int, cls, seq, chunk), "")
+
+    # --- rebuild local state ----------------------------------------------
+    state = State()
+    proj = {"name": name, "proj_int": proj_int,
+            "next_sess_int": (max(s[2] for s in my_sessions) + 1) if my_sessions else 1,
+            "sessions": {}, "active_sid": None, "last_sid": None}
+    for _, sid, sess_int in my_sessions:
+        meta = parse_kv(lane(sess_int, CLS["meta"], 1))
+        ckpt = parse_kv(lane(sess_int, CLS["checkpoint"], 1))
+        last_seq = int(ckpt.get("final_seq", "1")) if ckpt else 1
+        proj["sessions"][sid] = {
+            "sid": sid, "sess_int": sess_int, "proj_int": proj_int,
+            "workspace": "", "provider": "teleported",
+            "started": meta.get("started", ""), "stopped": ckpt.get("stopped"),
+            "last_seq": last_seq, "snapshot": {}, "status": "stopped"}
+        proj["last_sid"] = sid
+    state.data["projects"][str(root)] = proj
+    state.data["next_proj_int"] = max(state.data.get("next_proj_int", 2),
+                                      max(proj_reg.values(), default=1) + 1)
+    state.save()
+
+    # --- resume briefing (phext data ONLY) ---------------------------------
+    print("\n=== teleport-in: resume briefing (generated from the phext alone) ===")
+    print(f"project: {name} (int {proj_int})")
+    print(f"sessions in phext: {len(my_sessions)}")
+    for _, sid, sess_int in my_sessions:
+        meta = parse_kv(lane(sess_int, CLS["meta"], 1))
+        ckpt = parse_kv(lane(sess_int, CLS["checkpoint"], 1))
+        print(f"  session {sid} (int {sess_int}): started {meta.get('started', '?')}, "
+              f"stopped {ckpt.get('stopped', '?')}, final_seq {ckpt.get('final_seq', '?')}")
+    last = None
+    if my_sessions:
+        _, last_sid, last_int = my_sessions[-1]
+        cmds = []
+        for c, scroll in export.items():
+            m = COORD_RE.match(c)
+            if not m or (int(m.group(1)), int(m.group(2))) != (proj_int, last_int):
+                continue
+            if int(m.group(3)) == CLS["transcript"]:
+                kv = parse_kv(scroll)
+                first = scroll.splitlines()[0] if scroll.splitlines() else ""
+                cmds.append((int(m.group(4)), first, kv.get("exit", "?")))
+        cmds.sort()
+        print(f"commands (last session {last_sid}):")
+        for seq, cmdline, ex in cmds:
+            print(f"  seq {seq}: {cmdline} -> exit {ex}")
+        last = cmds[-1] if cmds else None
+        manifest = lane(last_int, CLS["manifest"], 1)
+        files = [ln for ln in manifest.splitlines() if ln.strip()]
+        print(f"files at stop (manifest, {len(files)} files):")
+        for ln in files:
+            print(f"  {ln}")
+        diff = lane(last_int, CLS["diff"], 1)
+        for ln in diff.splitlines():
+            if ln.startswith(("added:", "modified:", "deleted:", "+", "*", "-")):
+                print(f"  diff: {ln}")
+        ckpt = parse_kv(lane(last_int, CLS["checkpoint"], 1))
+        print(f"checkpoint_pre_checksum: {ckpt.get('pre_checkpoint_checksum', '?')}")
+        print(f"last_command: {last[1] if last else '?'}")
+        print(f"last_exit: {last[2] if last else '?'}")
+        print(f"next_session_int: {proj['next_sess_int']}")
+        print(f"next_seq_for_last_session: {int(ckpt.get('final_seq', '1')) + 1}")
+    print(f"state rebuilt: {state.path}")
 
 
 COMMANDS = {"init": cmd_init, "start": cmd_start, "status": cmd_status,
             "ls": cmd_ls, "stop": cmd_stop, "destroy": cmd_destroy,
-            "context": cmd_context}
+            "context": cmd_context, "teleport-in": cmd_teleport_in}
+
+HELP = {
+    "init": "ocbox init\n  Write .ocbox.json (project name) in the current directory.",
+    "start": "ocbox start\n  Start a Session: copy the project into a fresh workspace, register\n  the project/session in the phext, write meta (class 1) + env names\n  only (class 7). Fails if a session is already active.",
+    "exec": "ocbox exec <command...>\n  Run a command in the active session's workspace, streaming output\n  live. On exit, transcript/stdout/stderr scrolls are flushed to the\n  phext (byte-exact chunking; non-UTF-8 output is stored base64 — see\n  README 'Encoding policy'). The CLI exits with the command's exit\n  code (128+signum if the command was killed by a signal).",
+    "status": "ocbox status\n  Show project, phext store, current/last session and sequence state.",
+    "ls": "ocbox ls\n  List all sessions across projects known to this shim home.",
+    "context": "ocbox context\n  The agent's view: phext toc, coordinates changed since the last\n  context, and the latest checkpoint. Works with no local state on a\n  teleported phext (checkpoint is found by scanning the phext).",
+    "stop": "ocbox stop\n  Pre-stop capture — diff (class 5), files manifest (class 6) and\n  checkpoint (class 8) are written while the session is live — then\n  the session is marked stopped. The workspace is kept.",
+    "destroy": "ocbox destroy\n  Delete the current/last session's workspace. The phext remains.",
+    "teleport-in": "ocbox teleport-in <path-to.phext>\n  Layer 4: given ONLY a .phext file in a fresh environment, rebuild\n  the writer state (registry, session counters) from the phext and\n  print a resume briefing generated solely from phext data.",
+}
 
 
 def main(argv):
-    if len(argv) < 2 or argv[1] in ("-h", "--help", "help"):
+    if len(argv) < 2 or argv[1] in ("-h", "--help"):
         print(__doc__.strip().splitlines()[0])
-        print("usage: ocbox <init|start|exec|status|ls|context|stop|destroy> [args]")
+        print("\nusage: ocbox <command> [args]\n\ncommands:")
+        short = {"init": "write .ocbox.json in the current directory",
+                 "start": "start a Session and write meta + env-names",
+                 "exec": "run a command in the session; flush output lanes",
+                 "status": "project / session / sequence state",
+                 "ls": "list all sessions known to this shim home",
+                 "context": "toc + what changed + latest checkpoint",
+                 "stop": "pre-stop capture (diff/manifest/checkpoint), stop",
+                 "destroy": "delete the session workspace; keep the phext",
+                 "teleport-in": "rebuild state from a .phext file alone"}
+        for name in ("init", "start", "exec", "status", "ls", "context",
+                     "stop", "destroy", "teleport-in"):
+            print(f"  {name:<12} {short[name]}")
+        print("\nRun `ocbox help <command>` for details. Exit codes: 0 ok, "
+              "2 usage/state errors;\n`exec` propagates the wrapped command's exit code.")
         return 0
+    if argv[1] == "help":
+        topic = argv[2] if len(argv) > 2 else None
+        if topic in HELP:
+            print(HELP[topic])
+            return 0
+        print("usage: ocbox help <command> — commands: " + ", ".join(sorted(HELP)))
+        return 0 if topic is None else 2
     cmd, rest = argv[1], argv[2:]
+    if rest and rest[0] in ("-h", "--help") and cmd in HELP:
+        print(HELP[cmd])
+        return 0
     if cmd == "exec":
         return cmd_exec(rest)
     fn = COMMANDS.get(cmd)
     if not fn:
-        die(f"unknown command {cmd!r} (shim implements: init, start, exec, "
-            f"status, ls, context, stop, destroy)")
+        die(f"unknown command {cmd!r} (shim implements: "
+            f"{', '.join(sorted(COMMANDS))})")
     fn(rest)
     return 0
 

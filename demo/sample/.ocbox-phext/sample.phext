@@ -1,33 +1,57 @@
 sample	2
-2	s_98ec	1
+2	s_316e	1
 project: sample
 project_int: 2
-session: s_98ec
+session: s_316e
 session_int: 1
 provider: local-shim
 image: n/a
-started: 2026-11-01T10:19:58+00:00
-workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_98ec/workspace
+started: 2026-11-01T10:33:29+00:00
+workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_316e/workspace
 exec seq=2 cmd=python3 hello.py exit=0 duration_s=0.027
-exec seq=3 cmd=python3 -m unittest -v exit=0 duration_s=0.097
-exec seq=4 cmd=python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md exit=0 duration_s=0.026
-exec seq=5 cmd=python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)" exit=3 duration_s=0.025
+exec seq=3 cmd=python3 -m unittest -v exit=0 duration_s=0.092
+exec seq=4 cmd=python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md exit=0 duration_s=0.027
+exec seq=5 cmd=python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)" exit=3 duration_s=0.027
 $ python3 hello.py
 exit: 0
+stdout_bytes: 74
+stdout_sha256: 21c7c1c3396e79ce7fecff07052752d1a901700abaf073edec1ca8173a83ec72
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
 duration_s: 0.027
-at: 2026-11-01T10:19:58+00:00
+at: 2026-11-01T10:33:29+00:00
 $ python3 -m unittest -v
 exit: 0
-duration_s: 0.097
-at: 2026-11-01T10:19:59+00:00
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 204
+stderr_sha256: afa72c81c4eb4b27bb9de7683d5b8eade4556550f32051cd8c14258abd66eb9b
+stderr_encoding: utf-8
+duration_s: 0.092
+at: 2026-11-01T10:33:30+00:00
 $ python3 -c "open('notes.txt','w').write('created inside the session\n')" && echo 'a change from inside the session' >> README.md
 exit: 0
-duration_s: 0.026
-at: 2026-11-01T10:19:59+00:00
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 0
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_encoding: utf-8
+duration_s: 0.027
+at: 2026-11-01T10:33:30+00:00
 $ python3 -c "import sys; print('something went wrong on purpose', file=sys.stderr); sys.exit(3)"
 exit: 3
-duration_s: 0.025
-at: 2026-11-01T10:19:59+00:00
+stdout_bytes: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stdout_encoding: utf-8
+stderr_bytes: 32
+stderr_sha256: 817f9a1133999faf3df75ca394223a57d0d3222105190aabb5a87a4942e4a4ee
+stderr_encoding: utf-8
+duration_s: 0.027
+at: 2026-11-01T10:33:30+00:00
 hello, world
 hello from the remote session (which is really a local shim)
 test_default (test_hello.TestHello.test_default) ... ok
@@ -66,11 +90,11 @@ PATH
 PWD
 SHLVL
 _
-session: s_98ec
+session: s_316e
 session_int: 1
 project_int: 2
-stopped: 2026-11-01T10:19:59+00:00
+stopped: 2026-11-01T10:33:30+00:00
 final_seq: 5
-pre_checkpoint_checksum: b78552355215975c73f3043094b03da4
+pre_checkpoint_checksum: 9497c41f3c069180c6e0a9b5c4eefe1f
 note: checksum was taken BEFORE this checkpoint scroll was inserted
-delta_sha256: 2152ec362ec535dacf1d560e39705884dfb7c76ce95c8f2eb86e34148cb9b48a
+delta_sha256: 19e50c9a2c605286f0aef25dae3d0bb4b6c96084366de103a9cc47d4d6cbd166

@@ -1,17 +1,17 @@
-=== ocbox x phext MVP demo — 2026-11-01T10:19:58Z ===
+=== ocbox x phext MVP demo — 2026-11-01T10:33:29Z ===
 --- cleaning prior demo state ---
 $ ocbox init
 Created .ocbox.json — project 'sample'
 $ ocbox start
-Session s_98ec ready — project sample (int 2), session int 1
-Workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_98ec/workspace
+Session s_316e ready — project sample (int 2), session int 1
+Workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_316e/workspace
 Phext: /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext/sample.phext
 $ ocbox status
 Project: sample (int 2)
 Phext store: /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext
-Session: s_98ec (int 1) — active
-Workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_98ec/workspace
-Started: 2026-11-01T10:19:58+00:00  Stopped: None  Last seq: 1
+Session: s_316e (int 1) — active
+Workspace: /home/hatch/workspace/ocbox-phext/demo/.demo-state/shim/sessions/sample-s_316e/workspace
+Started: 2026-11-01T10:33:29+00:00  Stopped: None  Last seq: 1
 $ ocbox exec python3 hello.py
 hello, world
 hello from the remote session (which is really a local shim)
@@ -30,7 +30,7 @@ something went wrong on purpose
 $ ocbox context
 === toc ===
 * 1.1.1/1.1.1/1.1.1: sample	2...
-* 1.1.1/1.1.2/1.1.1: 2	s_98ec	1...
+* 1.1.1/1.1.2/1.1.1: 2	s_316e	1...
 * 2.1.1/1.1.1/1.1.1: project: sample...
 * 2.1.1/2.1.1/2.1.1: $ python3 hello.py...
 * 2.1.1/2.1.1/3.1.1: $ python3 -m unittest -v...
@@ -43,13 +43,13 @@ $ ocbox context
 
 === delta ===
 No previous delta state — recording current state as baseline.
-(delta sha256: 592345fb0b0799b003fd45be58f965f9499f326d91bbcb926a5e86b0e7c07f4b)
+(delta sha256: 58cd6d793e9ce5ab132e5bd755c36af0afcbcc98dfa7f078421d62e22021f880)
 $ ocbox stop
-Session s_98ec stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext/sample.phext
+Session s_316e stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext/sample.phext
 $ ocbox context (after stop — checkpoint + delta changes)
 === toc ===
 * 1.1.1/1.1.1/1.1.1: sample	2...
-* 1.1.1/1.1.2/1.1.1: 2	s_98ec	1...
+* 1.1.1/1.1.2/1.1.1: 2	s_316e	1...
 * 2.1.1/1.1.1/1.1.1: project: sample...
 * 2.1.1/2.1.1/2.1.1: $ python3 hello.py...
 * 2.1.1/2.1.1/3.1.1: $ python3 -m unittest -v...
@@ -61,24 +61,24 @@ $ ocbox context (after stop — checkpoint + delta changes)
 * 2.1.1/5.1.1/1.1.1: added: 1...
 * 2.1.1/6.1.1/1.1.1: README.md	176	a77d67d16e9c42a783b54d058da202e65e53fbe10363fc57db13c4cca9bd1db0...
 * 2.1.1/7.1.1/1.1.1: HOME...
-* 2.1.1/8.1.1/1.1.1: session: s_98ec...
+* 2.1.1/8.1.1/1.1.1: session: s_316e...
 
 === delta ===
 Coordinates changed since last context:
   2.1.1/5.1.1/1.1.1
   2.1.1/6.1.1/1.1.1
   2.1.1/8.1.1/1.1.1
-(delta sha256: 2ea9b0c842479f35845d686bcd7a86f996acbf94eaa2828ad2813290c2503ae8)
+(delta sha256: 98f56fb3cf785c4ade81f1c30a7137eeddcb31a1bfd639f7e7d17dce87928cb9)
 
-=== checkpoint (s_98ec) ===
-session: s_98ec
+=== checkpoint (s_316e) ===
+session: s_316e
 session_int: 1
 project_int: 2
-stopped: 2026-11-01T10:19:59+00:00
+stopped: 2026-11-01T10:33:30+00:00
 final_seq: 5
-pre_checkpoint_checksum: b78552355215975c73f3043094b03da4
+pre_checkpoint_checksum: 9497c41f3c069180c6e0a9b5c4eefe1f
 note: checksum was taken BEFORE this checkpoint scroll was inserted
-delta_sha256: 2152ec362ec535dacf1d560e39705884dfb7c76ce95c8f2eb86e34148cb9b48a
+delta_sha256: 19e50c9a2c605286f0aef25dae3d0bb4b6c96084366de103a9cc47d4d6cbd166
 
 === VERIFICATION (direct SQ reads, independent of the CLI's printouts) ===
 Coordinates found, by class:
@@ -87,10 +87,10 @@ Coordinates found, by class:
     1.1.1/1.1.2/1.1.1  (11 bytes)
     2.1.1/1.1.1/1.1.1  (649 bytes)
   class 2 (transcript):
-    2.1.1/2.1.1/2.1.1  (75 bytes)
-    2.1.1/2.1.1/3.1.1  (81 bytes)
-    2.1.1/2.1.1/4.1.1  (186 bytes)
-    2.1.1/2.1.1/5.1.1  (154 bytes)
+    2.1.1/2.1.1/2.1.1  (314 bytes)
+    2.1.1/2.1.1/3.1.1  (321 bytes)
+    2.1.1/2.1.1/4.1.1  (424 bytes)
+    2.1.1/2.1.1/5.1.1  (393 bytes)
   class 3 (stdout):
     2.1.1/3.1.1/2.1.1  (74 bytes)
   class 4 (stderr):
@@ -106,21 +106,21 @@ Coordinates found, by class:
     2.1.1/8.1.1/1.1.1  (299 bytes)
 Registry scrolls:
   project registry: sample	2
-  session registry: 2	s_98ec	1
+  session registry: 2	s_316e	1
 Checkpoint scroll:
-  session: s_98ec
+  session: s_316e
   session_int: 1
   project_int: 2
-  stopped: 2026-11-01T10:19:59+00:00
+  stopped: 2026-11-01T10:33:30+00:00
   final_seq: 5
-  pre_checkpoint_checksum: b78552355215975c73f3043094b03da4
+  pre_checkpoint_checksum: 9497c41f3c069180c6e0a9b5c4eefe1f
   note: checksum was taken BEFORE this checkpoint scroll was inserted
-  delta_sha256: 2152ec362ec535dacf1d560e39705884dfb7c76ce95c8f2eb86e34148cb9b48a
+  delta_sha256: 19e50c9a2c605286f0aef25dae3d0bb4b6c96084366de103a9cc47d4d6cbd166
 VERIFICATION: PASS — all 8 classes present, registries present, stderr/diff/manifest/checkpoint contents check out
 
 Demo phext: /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext/sample.phext
-SHA-256: 2ea9b0c842479f35845d686bcd7a86f996acbf94eaa2828ad2813290c2503ae8
-Size: 2491 bytes
+SHA-256: 98f56fb3cf785c4ade81f1c30a7137eeddcb31a1bfd639f7e7d17dce87928cb9
+Size: 3447 bytes
 --- killing the demo's managed sq host ---
 sq host stopped (pid from /home/hatch/workspace/ocbox-phext/demo/sample/.ocbox-phext/sq-host.json)
 === demo complete ===

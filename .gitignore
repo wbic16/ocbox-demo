@@ -14,6 +14,34 @@ demo/sample/.ocbox-phext/.sq/
 demo/sample/.ocbox-phext/.phext
 demo/sample/.ocbox-phext/*.phext.json
 
+# Layer 2/3/4 state dirs (shim homes, workspaces, SQ runtime files) —
+# ignored, EXCEPT the resulting .phext files, which are evidence and stay.
+stress/.stress-state/*
+!stress/.stress-state/store
+stress/.stress-state/store/*
+!stress/.stress-state/store/stress.phext
+
+demo/.showcase-state/*
+!demo/.showcase-state/store
+demo/.showcase-state/store/*
+!demo/.showcase-state/store/showcase.phext
+
+demo/.teleport-state/*
+!demo/.teleport-state/A
+demo/.teleport-state/A/*
+!demo/.teleport-state/A/widget
+demo/.teleport-state/A/widget/*
+!demo/.teleport-state/A/widget/.ocbox-phext
+demo/.teleport-state/A/widget/.ocbox-phext/*
+!demo/.teleport-state/A/widget/.ocbox-phext/widget.phext
+!demo/.teleport-state/B
+demo/.teleport-state/B/*
+!demo/.teleport-state/B/widget
+demo/.teleport-state/B/widget/*
+!demo/.teleport-state/B/widget/.ocbox-phext
+demo/.teleport-state/B/widget/.ocbox-phext/*
+!demo/.teleport-state/B/widget/.ocbox-phext/widget.phext
+
 # Python noise
 __pycache__/
 *.pyc

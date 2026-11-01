@@ -1,0 +1,318 @@
+=== ocbox x phext STRESS — 2026-11-01T10:33:52Z ===
+--- cleaning prior stress state ---
+--- generating stress project in /home/hatch/workspace/ocbox-phext/stress/.stress-state/src ---
+$ ocbox start   (session 1)
+Session s_a93c ready — project stress (int 2), session int 1
+Workspace: /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_a93c/workspace
+Phext: /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+--- CASE 1: volume / chunking (~5 MB of stdout) ---
+$ ocbox exec seq 1 700000   (stdout redirected to a capture file)
+(ocbox exit: 0; captured stdout: 4788895 bytes, sha256 52ecaed6c269043703c6bfff09b6848da63a3bcbf5d168d980bb85990f480fa7)
+--- CASE 2: one single line > 200 KB, no newline ---
+$ ocbox exec python3 -c "import sys; sys.stdout.write('x'*250000)"   (stdout redirected to a capture file)
+(ocbox exit: 0; captured stdout: 250000 bytes, sha256 9cd4941d1cacb02b151e330806e176a8b83fe4c4fa821fafcc5a854978097ec0)
+--- CASE 3a: output with no trailing newline ---
+$ ocbox exec printf 'no trailing newline'
+no trailing newline(ocbox exit: 0)
+--- CASE 3b: completely empty stdout AND stderr ---
+$ ocbox exec true
+(ocbox exit: 0)
+--- CASE 3c: stderr only ---
+$ ocbox exec python3 -c "import sys; sys.stderr.write('only stderr here\n')"
+only stderr here
+(ocbox exit: 0)
+--- CASE 4a: binary stdout (dd urandom 64 KB) ---
+$ ocbox exec dd if=/dev/urandom bs=1024 count=64   (stdout redirected to a capture file)
+64+0 records in
+64+0 records out
+65536 bytes (66 kB, 64 KiB) copied, 0.000350977 s, 187 MB/s
+(ocbox exit: 0; captured stdout: 65536 bytes, sha256 3cc6e1b0e58eae122dcf2017707d24963e0a38c5a5c3cd9fda3b5daa09c9f740)
+--- CASE 4b: binary stdout (openssl rand 4096, raw) ---
+$ ocbox exec openssl rand 4096   (stdout redirected to a capture file)
+(ocbox exit: 0; captured stdout: 4096 bytes, sha256 961a015fb6aebc392b14b80a0fd07dcae5ef27ad2ce7225c35fce946dcac127f)
+--- CASE 5a: unicode + emoji + combining characters ---
+$ ocbox exec python3 -c "print('héllo wörld 🌍🔥'); print('é combining, ünïcodé')"
+héllo wörld 🌍🔥
+é combining, ünïcodé
+(ocbox exit: 0)
+--- CASE 5b: carriage-return progress output, no newline ---
+$ ocbox exec printf '\rprogress 0%%\rprogress 50%%\rprogress 100%%'
+progress 0%progress 50%progress 100%(ocbox exit: 0)
+--- CASE 6: exit-code zoo ---
+$ ocbox exec exit 0
+(ocbox exit: 0)
+$ ocbox exec false
+(ocbox exit: 1)
+$ ocbox exec python3 -c "import sys; sys.exit(2)"
+(ocbox exit: 2)
+$ ocbox exec python3 -c "import sys; sys.exit(42)"
+(ocbox exit: 42)
+$ ocbox exec definitely-not-a-real-command-xyz123
+/bin/sh: 1: definitely-not-a-real-command-xyz123: not found
+(ocbox exit: 127)
+$ ocbox exec timeout 1 sleep 10
+(ocbox exit: 124)
+$ ocbox exec python3 -c "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"
+Terminated
+(ocbox exit: 143)
+$ ocbox exec exec python3 -c "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"
+ocbox: command terminated by signal SIGTERM (15)
+(ocbox exit: 143)
+$ ocbox exec printf 'alpha\nbeta\n' > g.txt; grep zzz g.txt
+(ocbox exit: 1)
+$ ocbox exec printf 'a\n' > d1.txt; printf 'b\n' > d2.txt; diff d1.txt d2.txt
+1c1
+< a
+---
+> b
+(ocbox exit: 1)
+--- CASE 7: many steps (60 sequential execs) ---
+$ ocbox exec echo step-1
+step-1
+(ocbox exit: 0)
+$ ocbox exec echo step-2
+step-2
+(ocbox exit: 0)
+$ ocbox exec echo step-3
+step-3
+(ocbox exit: 0)
+$ ocbox exec echo step-4
+step-4
+(ocbox exit: 0)
+$ ocbox exec echo step-5
+step-5
+(ocbox exit: 0)
+$ ocbox exec echo step-6
+step-6
+(ocbox exit: 0)
+$ ocbox exec echo step-7
+step-7
+(ocbox exit: 0)
+$ ocbox exec echo step-8
+step-8
+(ocbox exit: 0)
+$ ocbox exec echo step-9
+step-9
+(ocbox exit: 0)
+$ ocbox exec echo step-10
+step-10
+(ocbox exit: 0)
+$ ocbox exec echo step-11
+step-11
+(ocbox exit: 0)
+$ ocbox exec echo step-12
+step-12
+(ocbox exit: 0)
+$ ocbox exec echo step-13
+step-13
+(ocbox exit: 0)
+$ ocbox exec echo step-14
+step-14
+(ocbox exit: 0)
+$ ocbox exec echo step-15
+step-15
+(ocbox exit: 0)
+$ ocbox exec echo step-16
+step-16
+(ocbox exit: 0)
+$ ocbox exec echo step-17
+step-17
+(ocbox exit: 0)
+$ ocbox exec echo step-18
+step-18
+(ocbox exit: 0)
+$ ocbox exec echo step-19
+step-19
+(ocbox exit: 0)
+$ ocbox exec echo step-20
+step-20
+(ocbox exit: 0)
+$ ocbox exec echo step-21
+step-21
+(ocbox exit: 0)
+$ ocbox exec echo step-22
+step-22
+(ocbox exit: 0)
+$ ocbox exec echo step-23
+step-23
+(ocbox exit: 0)
+$ ocbox exec echo step-24
+step-24
+(ocbox exit: 0)
+$ ocbox exec echo step-25
+step-25
+(ocbox exit: 0)
+$ ocbox exec echo step-26
+step-26
+(ocbox exit: 0)
+$ ocbox exec echo step-27
+step-27
+(ocbox exit: 0)
+$ ocbox exec echo step-28
+step-28
+(ocbox exit: 0)
+$ ocbox exec echo step-29
+step-29
+(ocbox exit: 0)
+$ ocbox exec echo step-30
+step-30
+(ocbox exit: 0)
+$ ocbox exec echo step-31
+step-31
+(ocbox exit: 0)
+$ ocbox exec echo step-32
+step-32
+(ocbox exit: 0)
+$ ocbox exec echo step-33
+step-33
+(ocbox exit: 0)
+$ ocbox exec echo step-34
+step-34
+(ocbox exit: 0)
+$ ocbox exec echo step-35
+step-35
+(ocbox exit: 0)
+$ ocbox exec echo step-36
+step-36
+(ocbox exit: 0)
+$ ocbox exec echo step-37
+step-37
+(ocbox exit: 0)
+$ ocbox exec echo step-38
+step-38
+(ocbox exit: 0)
+$ ocbox exec echo step-39
+step-39
+(ocbox exit: 0)
+$ ocbox exec echo step-40
+step-40
+(ocbox exit: 0)
+$ ocbox exec echo step-41
+step-41
+(ocbox exit: 0)
+$ ocbox exec echo step-42
+step-42
+(ocbox exit: 0)
+$ ocbox exec echo step-43
+step-43
+(ocbox exit: 0)
+$ ocbox exec echo step-44
+step-44
+(ocbox exit: 0)
+$ ocbox exec echo step-45
+step-45
+(ocbox exit: 0)
+$ ocbox exec echo step-46
+step-46
+(ocbox exit: 0)
+$ ocbox exec echo step-47
+step-47
+(ocbox exit: 0)
+$ ocbox exec echo step-48
+step-48
+(ocbox exit: 0)
+$ ocbox exec echo step-49
+step-49
+(ocbox exit: 0)
+$ ocbox exec echo step-50
+step-50
+(ocbox exit: 0)
+$ ocbox exec echo step-51
+step-51
+(ocbox exit: 0)
+$ ocbox exec echo step-52
+step-52
+(ocbox exit: 0)
+$ ocbox exec echo step-53
+step-53
+(ocbox exit: 0)
+$ ocbox exec echo step-54
+step-54
+(ocbox exit: 0)
+$ ocbox exec echo step-55
+step-55
+(ocbox exit: 0)
+$ ocbox exec echo step-56
+step-56
+(ocbox exit: 0)
+$ ocbox exec echo step-57
+step-57
+(ocbox exit: 0)
+$ ocbox exec echo step-58
+step-58
+(ocbox exit: 0)
+$ ocbox exec echo step-59
+step-59
+(ocbox exit: 0)
+$ ocbox exec echo step-60
+step-60
+(ocbox exit: 0)
+--- CASE 8: filenames with spaces and unicode ---
+$ ocbox exec printf 'space content\n' > 'file with spaces.txt'; printf 'unicode content\n' > 'ünïcodé ﬁle.txt'; ls -1
+blob.bin
+d1.txt
+d2.txt
+file with spaces.txt
+g.txt
+hello.txt
+words.txt
+ünïcodé ﬁle.txt
+(ocbox exit: 0)
+--- CASE 10: large binary created + start binary modified ---
+$ ocbox exec dd if=/dev/urandom of=big.bin bs=1M count=10; printf 'tail' >> blob.bin
+10+0 records in
+10+0 records out
+10485760 bytes (10 MB, 10 MiB) copied, 0.0380505 s, 276 MB/s
+(ocbox exit: 0)
+$ ocbox stop   (session 1)
+Session s_a93c stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+--- CASE 9: second session on the same project ---
+$ ocbox start   (session 2)
+Session s_8547 ready — project stress (int 2), session int 2
+Workspace: /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_8547/workspace
+Phext: /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+$ ocbox exec echo second session
+second session
+(ocbox exit: 0)
+$ ocbox exec sha256sum hello.txt
+c301aa3b3f1d30dd367cc57945b7fd56115c99969492d077058e9d453011c6ea  hello.txt
+(ocbox exit: 0)
+$ ocbox stop   (session 2)
+Session s_8547 stopped. Phext record complete at /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+
+=== VERIFICATION (direct SQ reads) ===
+PASS  1 volume chunk count  74 chunks for 4788895 bytes
+PASS  1 volume reassembly sha256  52ecaed6c2690437
+PASS  2 single long line  seq 3
+PASS  3a no trailing newline  
+PASS  3b empty stdout+stderr  
+PASS  3c stderr only  
+PASS  4 binary round-trip (dd)  65536 bytes via 3 scrolls
+PASS  4 binary round-trip (openssl)  4096 bytes via 2 scrolls
+PASS  5a unicode byte-exact  
+PASS  5b CR progress byte-exact  
+PASS  6 exit[exit 0] == ['0']  recorded 0
+PASS  6 exit[false] == ['1']  recorded 1
+PASS  6 exit[sys.exit(2)] == ['2']  recorded 2
+PASS  6 exit[sys.exit(42)] == ['42']  recorded 42
+PASS  6 exit[definitely-not-a-real] == ['127']  recorded 127
+PASS  6 exit[timeout 1 sleep 10] == ['124']  recorded 124
+PASS  6 exit[grep zzz] == ['1']  recorded 1
+PASS  6 exit[diff d1.txt] == ['1']  recorded 1
+PASS  6 exit[signal SIGTERM via shell]  recorded exit 143, signal=None
+PASS  6 exit[signal SIGTERM direct]  recorded exit -15, signal=SIGTERM (15)
+PASS  6 diff exit-1 stdout has the difference  
+PASS  7 seqs contiguous, no gaps/dupes  session 1 seqs 2..82 (81 execs)
+PASS  7 checkpoint final_seq == last seq  final_seq 82
+PASS  8 filenames in manifest+diff  
+PASS  9 session 2 registered + disjoint lanes  registry lines + 9 coords
+PASS  9 session 2 meta chains to session 1  chain 28bb16da1f5e1a83
+PASS  10 big.bin manifest hash == sha256sum  workspace /home/hatch/workspace/ocbox-phext/stress/.stress-state/shim/sessions/stress-s_a93c/workspace
+PASS  10 modified binary = hash record, no difflib dump  
+phext size: 5167598 bytes (5167256 bytes of scroll text, 250 scrolls)
+STRESS RESULT: 28/28 PASS
+
+Stress phext: /home/hatch/workspace/ocbox-phext/stress/.stress-state/store/stress.phext
+SHA-256: 6d4c68e90df5c7e13be28dd9e582760975c6ec083cf0498303a65f1c5a89aeb4
+Size: 5167598 bytes
+=== stress complete (verification rc=0) ===
